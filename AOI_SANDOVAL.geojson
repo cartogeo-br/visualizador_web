@@ -1,0 +1,8 @@
+{
+"type": "FeatureCollection",
+"name": "AOI_SANDOVAL",
+"crs": { "type": "name", "properties": { "name": "urn:ogc:def:crs:OGC:1.3:CRS84" } },
+"features": [
+{ "type": "Feature", "properties": { "Id": 0 }, "geometry": { "type": "Polygon", "coordinates": [ [ [ -39.564675916212138, -13.847294190104208 ], [ -39.202748754270829, -13.847861040394548 ], [ -39.202904832957358, -14.026652302508694 ], [ -39.565110586693493, -14.02607784593522 ], [ -39.564675916212138, -13.847294190104208 ] ] ] } }
+]
+}

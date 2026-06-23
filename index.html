@@ -1,0 +1,1209 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Visualizador Web de Camadas Geoespaciais</title>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/proj4js/2.8.0/proj4.min.js"></script>
+
+<!-- libs para upload/parse: shpjs (shapefile zip), jszip (inspecionar zip/kmz), togeojson (kml->geojson) -->
+<script src="https://unpkg.com/shpjs@3.6.2/dist/shp.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://unpkg.com/togeojson@0.16.0/togeojson.js"></script>
+
+<!-- html2canvas + jsPDF para export -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<style>
+  :root{
+    --bg:#04120a; --panel:#07160a; --muted:#82f59b; --muted-dim:rgba(130,245,155,0.25); --txt:#dfffe8; --card: rgba(10,20,12,0.7);
+  }
+  html,body{height:100%;margin:0;font-family:Inter,system-ui,Arial,Helvetica,sans-serif;background:var(--bg);color:var(--txt)}
+  #app{display:block;height:100vh;overflow:hidden}
+  #map{position:relative;height:100vh}
+  .card{background:var(--card);padding:10px;border-radius:8px;margin-bottom:12px;border:1px solid rgba(255,255,255,0.03)}
+  /* Top bar */
+  #topbar{
+    position:fixed; left:0; right:0; top:0; height:56px; z-index:1700;
+    background:linear-gradient(90deg, rgba(4,18,10,0.92), rgba(6,22,15,0.82));
+    display:flex; align-items:center; justify-content:space-between; padding:0 16px;
+    box-shadow:0 6px 18px rgba(0,0,0,0.5); border-bottom:1px solid rgba(255,255,255,0.02);
+  }
+  #topbar .title{font-weight:700;color:#dfffe8;display:flex;align-items:center;gap:12px;font-size:15px}
+  #topbar .title .logo-placeholder{width:36px;height:36px;border-radius:8px;background:rgba(255,255,255,0.03);display:flex;align-items:center;justify-content:center;color:var(--muted);font-weight:700}
+  #topbar .title img.logo { width:100px;height:100px;border-radius:8px;object-fit:contain; background:rgba(255,255,255,0.02);padding:4px }
+  .top-actions{display:flex;align-items:center;gap:10px}
+  .action-btn{
+    width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;
+    background:rgba(5,10,8,0.95); border:1px solid rgba(255,255,255,0.04); cursor:pointer;
+    box-shadow:0 8px 26px rgba(0,0,0,0.5);
+  }
+  .action-btn:focus{outline:2px solid rgba(34,197,94,0.18)}
+  .export-menu, .basemap-menu, .upload-menu{
+    position: absolute;
+    top:62px;
+    z-index:1750;
+    width:260px;
+    background: rgba(5,10,8,0.96);
+    border:1px solid rgba(255,255,255,0.04);
+    border-radius:8px;
+    padding:8px;
+    box-shadow:0 8px 30px rgba(0,0,0,0.6);
+  }
+  .export-menu{ right:176px; }
+  .upload-menu{ right:110px; }
+  .basemap-menu{ right:16px; }
+  .export-item, .basemap-item, .upload-item{
+    padding:8px;border-radius:6px;cursor:pointer;color:var(--txt)
+  }
+  .export-item:hover, .basemap-item:hover, .upload-item:hover{background:rgba(255,255,255,0.02)}
+  .layer-panel{
+    position:fixed; top:72px; right:16px; z-index:1650;
+    width:320px; max-height:68vh; overflow:auto; border-radius:10px; padding:12px;
+    background:rgba(5,10,8,0.94); border:1px solid rgba(255,255,255,0.03); box-shadow:0 10px 30px rgba(0,0,0,0.6);
+    transition: transform .15s ease, opacity .15s;
+  }
+  .layer-panel.hidden{ opacity:0; transform:scale(.98) translateY(-6px); pointer-events:none }
+  .layer-item{display:flex;align-items:center;gap:10px;padding:8px;border-radius:6px;cursor:pointer}
+  .layer-item:hover{ background: rgba(255,255,255,0.015) }
+  .eye-btn{
+    width:26px;height:26px;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;
+    background:transparent;border:1px solid rgba(255,255,255,0.03);color:var(--muted-dim);flex:0 0 26px;
+  }
+  .eye-btn svg{ width:18px;height:18px; display:block; }
+  .eye-btn.visible{ background: linear-gradient(180deg, rgba(18,77,51,0.18), rgba(18,77,51,0.08)); border-color: rgba(130,245,155,0.14); color:var(--muted); box-shadow: 0 2px 8px rgba(12,30,18,0.45) inset; }
+  .layer-label{flex:1;color:var(--txt);font-size:14px}
+  .layer-label .small{font-size:13px;color:#bfe8c9}
+  .remove-btn{width:28px;height:28px;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;background:transparent;border:none;color:#ff8b8b;cursor:pointer}
+  .remove-btn:hover{background:rgba(255,100,100,0.06)}
+  .legend{
+    width:220px;background:rgba(5,10,8,0.95);border-radius:10px;padding:10px;border:1px solid rgba(255,255,255,0.03);
+    color:var(--txt); font-size:13px
+  }
+  .leg-item{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+  .leg-dot{width:14px;height:14px;border-radius:3px;border:1px solid rgba(0,0,0,0.16)}
+  /* hatch pattern for Limite legend square */
+  .hatch {
+    background-color: transparent;
+    background-image: repeating-linear-gradient(45deg, #000 0, #000 2px, transparent 2px, transparent 6px);
+    border:1px solid #000;
+  }
+  #loading{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(3,8,5,0.96);z-index:1800;color:#9fbfa1}
+  .spinner{width:44px;height:44px;border:3px solid rgba(34,197,94,0.09);border-top-color:var(--muted);border-radius:50%;animation:rot .85s linear infinite}
+  @keyframes rot{to{transform:rotate(360deg)}}
+  .loading-close{margin-top:12px;padding:8px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:var(--muted);cursor:pointer}
+  .load-log{margin-top:10px;color:#f7d6d6;max-width:760px;text-align:center;font-size:13px}
+  .small{font-size:13px;color:#9fbfa1}
+  .btn{padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.03);background:transparent;color:var(--muted);cursor:pointer}
+  .leaflet-container{background:linear-gradient(#04120a,#06210f)}
+  .leaflet-bottom .legend { margin-bottom: 14px; margin-right: 12px; z-index: 1400; }
+  #exportStatus{position:fixed; top:64px; right:16px; z-index:1760; color:#dfffe8; background:rgba(6,18,10,0.85); border-radius:6px;padding:6px 10px; display:none; font-size:13px}
+  input[type="file"]{ display:none; }
+
+  /* Search bar styles (discretas; fixas abaixo do topbar; não altera layout) */
+  .search-bar {
+    position:fixed;
+    left:70px;
+    top:66px; /* logo abaixo da topbar de 56px */
+    z-index:1745;
+    width:360px;
+    max-width:calc(100% - 96px);
+    display:flex;
+    align-items:center;
+    gap:6px;
+    background: #ffffffee;
+    border-radius:8px;
+    padding:4px;
+    box-shadow: 0 6px 20px rgba(3,6,3,0.6);
+    border:1px solid rgba(0,0,0,0.12);
+  }
+  .search-input {
+    flex:1;
+    height:38px;
+    border-radius:8px;
+    border:1px solid rgba(0,0,0,0.08);
+    padding:8px 12px;
+    font-size:13px;
+    color:#0b2a1a;
+    background: #fff;
+  }
+  .search-btn {
+    height:36px;
+    min-width:44px;
+    background:#6b21a8;
+    border-radius:8px;
+    border:none;
+    color:white;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    padding:6px;
+    cursor:pointer;
+  }
+  .search-clear {
+    height:36px;
+    min-width:36px;
+    background: transparent;
+    border-radius:8px;
+    border:1px solid rgba(0,0,0,0.06);
+    color:#6b21a8;
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    padding:6px;
+    cursor:pointer;
+  }
+  .search-results {
+    position:fixed;
+    left:16px;
+    top:66px;
+    margin-top:48px;
+    z-index:1746;
+    width:360px;
+    max-width:calc(100% - 96px);
+    background: rgba(255,255,255,0.98);
+    border-radius:8px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.35);
+    overflow: auto;
+    max-height:40vh;
+    border:1px solid rgba(0,0,0,0.08);
+    display:none;
+    padding:6px;
+  }
+  .search-result-item {
+    padding:8px;
+    border-radius:6px;
+    cursor:pointer;
+    font-size:13px;
+    color:#08321f;
+  }
+  .search-result-item:hover { background: rgba(0,0,0,0.04); }
+  .search-noresults { padding:8px; color:#666; font-size:13px }
+  @media (max-width:480px){
+    .search-bar, .search-results { left:8px; right:8px; width:auto; max-width:calc(100% - 16px); }
+  }
+
+  /* Ensure leaflet zoom control doesn't get clipped when moved out of map container */
+  .leaflet-control-zoom {
+    /* styles will be overridden by JS to be fixed and positioned besides the search bar */
+    box-shadow: 0 6px 22px rgba(0,0,0,0.45);
+    border-radius:8px;
+    overflow:hidden;
+  }
+</style>
+</head>
+<body>
+<div id="loading" role="status" aria-live="polite">
+  <div class="spinner" aria-hidden="true"></div>
+  <div style="margin-top:12px">Carregando camadas GeoJSON...</div>
+  <div id="load-detail" class="small" style="margin-top:6px;color:#bfe8c9"></div>
+  <div id="load-errors" class="load-log" aria-live="polite"></div>
+  <button class="loading-close" id="loadingClose">Fechar (mostrar mapa)</button>
+</div>
+
+<!-- Top Bar: Imprimir, Camadas, Adicionar Dados, Basemap -->
+<div id="topbar" role="banner" aria-label="Barra superior">
+  <div class="title">
+    <img src="logo_cartogeo.png" alt="Logo Cartogeo" class="logo" onerror="this.style.display='none'"/>
+    <div>
+      <div style="font-weight:700">Visualizador Web de Camadas Geoespaciais</div>
+      <div style="font-size:12px;color:#9fbfa1;margin-top:2px">Ative as camadas de interesse no ícone de Camadas</div>
+    </div>
+  </div>
+
+  <div class="top-actions" aria-hidden="false">
+    <button id="printBtn" class="action-btn" title="Exportar / Imprimir" aria-haspopup="true" aria-expanded="false" style="background:transparent;border:none">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9fe3b6" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M6 9V2h12v7"></path><path d="M6 18H4a2 2 0 0 1-2-2v-3h20v3a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8" rx="2"></rect>
+      </svg>
+    </button>
+
+    <button id="layerToggle" class="action-btn" title="Abrir painel de camadas" tabindex="0" aria-expanded="false" aria-controls="layerPanel" style="background:transparent;border:none">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#9fe3b6" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <rect x="3" y="4" width="18" height="5" rx="1"></rect><rect x="3" y="10" width="18" height="5" rx="1"></rect><rect x="3" y="16" width="18" height="5" rx="1"></rect>
+      </svg>
+    </button>
+
+    <button id="uploadBtn" class="action-btn" title="Adicionar Dados (KML / Shapefile .zip)" aria-haspopup="true" aria-expanded="false" style="background:transparent;border:none">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9fe3b6" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+        <polyline points="7 10 12 5 17 10"></polyline>
+        <line x1="12" y1="5" x2="12" y2="19"></line>
+      </svg>
+    </button>
+
+    <button id="basemapBtn" class="action-btn" title="Alterar basemap" aria-haspopup="true" aria-expanded="false" style="background:transparent;border:none">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9fe3b6" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="12" cy="12" r="9"></circle><path d="M2 12h20"></path><path d="M12 2c2 4 2 8 0 20"></path>
+      </svg>
+    </button>
+  </div>
+</div>
+
+<!-- SEARCH BAR (ADICIONADA) - discreta, fixa logo abaixo do topbar -->
+<div class="search-bar" role="search" aria-label="Pesquisar local">
+  <input id="locSearchInput" class="search-input" type="search" placeholder="Encontrar endereço ou lugar" aria-label="Encontrar endereço ou lugar" />
+  <button id="locSearchBtn" class="search-btn" title="Pesquisar" aria-label="Pesquisar">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <circle cx="11" cy="11" r="6"></circle>
+      <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+    </svg>
+  </button>
+  <button id="locClearBtn" class="search-clear" title="Limpar" aria-label="Limpar pesquisa" type="button">✕</button>
+</div>
+
+<div id="searchResults" class="search-results" role="listbox" aria-label="Resultados da pesquisa"></div>
+
+<!-- Export, Upload and Basemap menus -->
+<div id="exportMenu" class="export-menu" style="display:none" role="menu" aria-hidden="true">
+  <div style="font-weight:700;color:#bdecc0;margin-bottom:6px">Exportar mapa</div>
+  <div class="export-item" id="exportPDFBtn">Exportar como PDF (A4)</div>
+  <div class="export-item" id="exportPDFLandscapeBtn">Exportar como PDF (A4 Paisagem)</div>
+  <div style="font-size:12px;color:#9fbfa1;margin-top:6px">A exportação captura o mapa e as legendas visíveis. Tiles sem CORS podem não aparecer.</div>
+</div>
+
+<div id="uploadMenu" class="upload-menu" style="display:none" role="menu" aria-hidden="true">
+  <div style="font-weight:700;color:#bdecc0;margin-bottom:6px">Adicionar dados</div>
+  <div class="upload-item" id="uploadKmlBtn">Carregar KML</div>
+  <div class="upload-item" id="uploadZipBtn">Carregar Shapefile (.zip)</div>
+
+  <div style="font-size:12px;color:#9fbfa1;margin-top:8px">Aceita .kml, .kmz (zip com .kml) ou .zip com shapefile (.shp/.dbf/.prj).</div>
+
+  <hr style="border:none;border-top:1px solid rgba(255,255,255,0.03);margin:8px 0">
+
+  <!-- Lista dinâmica de camadas adicionadas pelo usuário (aparece após upload) -->
+  <div style="font-weight:700;color:#bdecc0;margin-bottom:6px">Camadas adicionadas</div>
+  <div id="uploadedList" style="max-height:220px;overflow:auto;"></div>
+  <div id="noUploaded" class="small" style="margin-top:6px;color:#9fbfa1">Nenhuma camada adicionada.</div>
+</div>
+
+<div id="basemapMenu" class="basemap-menu" style="display:none" role="menu" aria-hidden="true">
+  <div style="font-weight:700;color:#bdecc0;margin-bottom:6px">Basemap</div>
+  <div class="basemap-item" id="bmMap">Mapa (OSM)</div>
+  <div class="basemap-item" id="bmSatellite">Satélite (Esri)</div>
+</div>
+
+<!-- hidden file inputs -->
+<input type="file" id="fileInput" accept=".kml,.kmz,.zip" />
+
+<!-- small export status -->
+<div id="exportStatus"></div>
+
+<div id="app" style="margin-top:56px">
+  <div id="map" aria-label="Mapa"></div>
+</div>
+
+<script>
+/* ---------------- CONFIG / ESTADO ---------------- */
+const LAYER_CANDIDATES = {
+  rl: ['RL.geojson','RL (1).geojson','RL (2).geojson','RL (3).geojson'],
+  atividade: ['Atividade_imovel.geojson','Atividade_imovel (1).geojson','Atividade_imovel (2).geojson'],
+  app: ['APP_imovel.geojson','APP_imovel (1).geojson','APP_imovel (2).geojson'],
+  limite: ['Limite_imovel.geojson','Limite_imovel (1).geojson','Limite_imovel (2).geojson'],
+  aoi: ['AOI_SANDOVAL.geojson','AOI_SANDOVAL (1).geojson'],
+  assentamento: ['Assentamento.geojson','Assentamento (1).geojson'],
+  quilombolas: ['areas_quilombolas.geojson','areas_quilombolas (1).geojson'],
+  hidrografia: ['Hidrografia.geojson','Hidrografia (1).geojson'],
+  uc: ['UC.geojson','UC (1).geojson'],
+  domicilios: ['domicilios.geojson','domicilios (1).geojson'],
+  mapbiomas: ['classes_mapbiomas.geojson','classes_mapbiomas (1).geojson'],
+  areas_prioritarias: ['areas_prioritarias_conservacao.geojson','areas_prioritarias_conservacao (1).geojson']
+};
+
+/* cores e nomes display – atualizadas conforme pedido */
+const CORES = {
+  rl:'#16A34A',
+  atividade:'#FB923C',
+  app:'#2563EB',
+  limite:'#000000',
+  aoi:'#8B5CF6',
+  assentamento:'#FB923C',
+  quilombolas:'#8B4513',
+  hidrografia:'#1E90FF',
+  uc:'#16A34A',
+  domicilios:'#2563EB',
+  mapbiomas:'#10B981',
+  areas_prioritarias:'#064E3B'
+};
+
+const DISPLAY_NAMES = {
+  rl: 'RL',
+  atividade: 'Atividade Imóvel',
+  app: 'APP Imóvel',
+  limite: 'Limite Imóvel',
+  assentamento: 'Assentamento',
+  quilombolas: 'Áreas Quilombolas',
+  uc: 'UC',
+  domicilios: 'Domicílios',
+  mapbiomas: 'Classes Mapbiomas',
+  areas_prioritarias: 'Áreas Prioritárias de Conservação'
+};
+
+let map, base;
+let osmLayer, satelliteLayer;
+let legendControl = null;
+let raw = {};        // GeoJSON raw por key
+let layers = {};     // L.GeoJSON por key
+let foundFiles = {}; // filename encontrado por key
+const byId = id => document.getElementById(id);
+
+/* proj4 def para EPSG:31984 */
+proj4.defs("EPSG:31984","+proj=utm +zone=24 +south +ellps=GRS80 +units=m +no_defs");
+
+/* ---------------- UTIL ---------------- */
+function logStatus(msg, isError=false){
+  console.log(msg);
+  const s = byId('load-detail'); if(s) s.textContent = msg;
+  if(isError){
+    const le = byId('load-errors'); if(le) le.textContent = (le.textContent? le.textContent + ' | ' : '') + msg;
+  }
+}
+async function tryFetchFile(fname){
+  try{
+    const url = encodeURI(fname);
+    const r = await fetch(url);
+    if(!r.ok) throw new Error('HTTP ' + r.status);
+    const txt = await r.text();
+    const clean = txt.replace(/^\uFEFF/,'');
+    const obj = JSON.parse(clean);
+    return obj;
+  }catch(e){
+    throw new Error(`${fname} → ${e.message}`);
+  }
+}
+
+/* tenta carregar todos os arquivos candidatos */
+async function findAndLoadAll(){
+  for(const key of Object.keys(LAYER_CANDIDATES)){
+    const candidates = LAYER_CANDIDATES[key];
+    let loaded = false;
+    for(const c of candidates){
+      try{
+        logStatus(`Tentando ${c} ...`);
+        const data = await tryFetchFile(c);
+        raw[key] = data;
+        foundFiles[key] = c;
+        logStatus(`OK: carregado ${c}`);
+        loaded = true;
+        break;
+      }catch(e){
+        console.warn('falha', e);
+      }
+    }
+    if(!loaded){
+      raw[key] = null;
+      logStatus(`Não encontrado: ${key} (nenhuma das variantes)`, true);
+    }
+  }
+}
+
+/* Reprojetar de 31984 -> 4326 se crs indicar */
+function reprojectIfNeeded(data, key){
+  if(!data) return null;
+  try{
+    const crsName = data.crs && data.crs.properties && data.crs.properties.name ? data.crs.properties.name.toString() : '';
+    if(crsName && crsName.indexOf('31984') !== -1){
+      function recurse(coords){
+        if(Array.isArray(coords) && coords.length>0 && typeof coords[0] === 'number' && typeof coords[1] === 'number'){
+          const t = proj4('EPSG:31984','EPSG:4326', coords);
+          return [t[0], t[1]];
+        }
+        return coords.map(c => recurse(c));
+      }
+      const copy = JSON.parse(JSON.stringify(data));
+      if(copy.features && Array.isArray(copy.features)){
+        copy.features.forEach(f => { if(f.geometry && f.geometry.coordinates) f.geometry.coordinates = recurse(f.geometry.coordinates); });
+      }
+      delete copy.crs;
+      console.log('Reprojetado', key, 'de 31984 → 4326');
+      return copy;
+    }
+  }catch(e){ console.warn('Erro reprojetar', e); }
+  return data;
+}
+
+/* Regras para extrair/manipular cores de propriedades */
+function normalizeColorValue(v){
+  if(!v && v !== 0) return null;
+  let s = String(v).trim();
+  if(!s) return null;
+  if(s.startsWith('#') || s.toLowerCase().startsWith('rgb') || s.toLowerCase().startsWith('hsl')) return s;
+  if(/^[0-9a-fA-F]{6}$/.test(s)) return '#' + s;
+  if(/^[0-9a-fA-F]{3}$/.test(s)) return '#' + s;
+  return s;
+}
+
+/* escape simples para HTML em popups */
+function escapeHtml(str){
+  if(str === null || str === undefined) return '—';
+  return String(str)
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;')
+    .replace(/'/g,'&#39;');
+}
+
+/* monta conteúdo do popup por camada conforme solicitado */
+function popupContentForFeature(key, feature){
+  const p = feature.properties || {};
+  let html = '<div style="font-size:13px;line-height:1.35">';
+  switch(key){
+    case 'assentamento': {
+      const v = p.denominaca || p.denominac || p.denominacao || p.DENOMINACA || p.denominacao || p.nome || '';
+      html += `<div><strong>Denominação:</strong> ${escapeHtml(v)}</div>`;
+      break;
+    }
+    case 'quilombolas': {
+      const v1 = p.nm_comunid || p.NM_COMUNID || p.nm_comuni || p.comunidade || '';
+      const v2 = p.nm_municip || p.NM_MUNICIP || p.nm_municipio || p.municipio || '';
+      html += `<div><strong>Comunidade:</strong> ${escapeHtml(v1)}</div>`;
+      html += `<div><strong>Município:</strong> ${escapeHtml(v2)}</div>`;
+      break;
+    }
+    case 'uc': {
+      const v1 = p.categori_1 || p.categoria_1 || p.categori || p.categoria || p.CATEGORI_1 || '';
+      const v2 = p.grupo || p.GRUPO || '';
+      html += `<div><strong>Categoria:</strong> ${escapeHtml(v1)}</div>`;
+      html += `<div><strong>Grupo:</strong> ${escapeHtml(v2)}</div>`;
+      break;
+    }
+    case 'domicilios': {
+      let lat = p.LATITUDE || p.latitude || p.lat || p.Latitude || '';
+      let lon = p.LONGITUDE || p.longitude || p.lon || p.lng || p.Longitude || '';
+      if((lat === '' || lon === '') && feature.geometry && Array.isArray(feature.geometry.coordinates)){
+        const coords = feature.geometry.coordinates;
+        lon = (lon === '') ? coords[0] : lon;
+        lat = (lat === '') ? coords[1] : lat;
+      }
+      html += `<div><strong>Latitude:</strong> ${escapeHtml(lat)}</div>`;
+      html += `<div><strong>Longitude:</strong> ${escapeHtml(lon)}</div>`;
+      break;
+    }
+    case 'mapbiomas': {
+      const v = p.classe || p.CLASSE || p.classe_ || p.Classe || '';
+      html += `<div><strong>Classe:</strong> ${escapeHtml(v)}</div>`;
+      break;
+    }
+    case 'areas_prioritarias': {
+      const v = p.apcb_nome || p.APCB_NOME || p.apc_nome || p.nome || p.name || '';
+      html += `<div><strong>APCB Nome:</strong> ${escapeHtml(v)}</div>`;
+      break;
+    }
+    default: {
+      const keys = Object.keys(p).slice(0,6);
+      if(keys.length === 0){
+        html += `<div>Sem atributos</div>`;
+      } else {
+        keys.forEach(k => {
+          html += `<div><strong>${escapeHtml(k)}:</strong> ${escapeHtml(p[k])}</div>`;
+        });
+      }
+    }
+  }
+  html += '</div>';
+  return html;
+}
+
+/* cria L.GeoJSON e salva em layers[key] */
+function makeLeafletLayer(key){
+  const data = raw[key];
+  if(!data) return null;
+  const color = CORES[key] || generateColorForKey(key);
+
+  const styleFn = (feature) => {
+    if(key === 'limite'){
+      return { color: '#000000', weight: 2, fillOpacity: 0, dashArray: '8 6' };
+    }
+    if(key === 'mapbiomas'){
+      const prop = feature && feature.properties ? (feature.properties.cor || feature.properties.COR || feature.properties.color || feature.properties.color_hex) : null;
+      const norm = normalizeColorValue(prop);
+      const fill = norm || CORES['mapbiomas'] || color;
+      return { color: fill, weight: 0.6, fillColor: fill, fillOpacity: 0.9 };
+    }
+    if(key === 'areas_prioritarias'){
+      const fill = CORES['areas_prioritarias'] || color;
+      return { color: fill, weight: 1, fillColor: fill, fillOpacity: 0.45 };
+    }
+    return { color: color, weight: 1.2, fillColor: color, fillOpacity: 0.35 };
+  };
+
+  const gj = L.geoJSON(data, {
+    style: styleFn,
+    pointToLayer: (feature,latlng) => {
+      const isLimite = (key === 'limite');
+      const baseRadius = 4.5;
+      const radius = (key === 'domicilios') ? (baseRadius/2) : baseRadius;
+      let fillC = color;
+      if(key === 'domicilios') fillC = CORES['domicilios'] || color;
+      if(key === 'mapbiomas'){
+        const prop = feature && feature.properties ? (feature.properties.cor || feature.properties.COR || feature.properties.color || feature.properties.color_hex) : null;
+        const norm = normalizeColorValue(prop);
+        if(norm) fillC = norm;
+      }
+      const opts = isLimite ? { radius: radius, fillColor:'#ffffff', color:'#000', weight:1, fillOpacity:1 } : { radius: radius, fillColor: fillC, color:'#222', weight:0.8, fillOpacity:0.95 };
+      return L.circleMarker(latlng, opts);
+    },
+    onEachFeature: (feature, layer) => {
+      const p = feature.properties || {};
+      const label = p.nome || p.Nome || p.name || p.id || p.ID || (DISPLAY_NAMES[key] || foundFiles[key] || key);
+      layer.bindTooltip(String(label), {sticky:true, direction:'auto'});
+      try{
+        const popupHtml = popupContentForFeature(key, feature);
+        if(popupHtml){
+          layer.bindPopup(popupHtml, { maxWidth: 320 });
+        }
+      }catch(e){
+        console.warn('Erro criar popup para', key, e);
+      }
+    }
+  });
+  layers[key] = gj;
+  return gj;
+}
+
+/* color generator simples para camadas do usuário */
+function generateColorForKey(key){
+  let h = 0;
+  for(let i=0;i<key.length;i++) h = (h<<5) - h + key.charCodeAt(i);
+  h = Math.abs(h) % 360;
+  return `hsl(${h} 80% 50%)`;
+}
+
+/* build and show layers */
+function buildAndShow(){
+  if(!map) initMap();
+
+  Object.keys(LAYER_CANDIDATES).forEach(k=>{
+    if(layers[k] && map.hasLayer(layers[k])) try{ map.removeLayer(layers[k]); }catch(e){}
+    layers[k] = null;
+    if(raw[k]) {
+      raw[k] = reprojectIfNeeded(raw[k], k);
+      makeLeafletLayer(k);
+    }
+  });
+
+  const defaults = ['rl','atividade','app','limite'];
+  defaults.forEach(k => {
+    if(layers[k]) { layers[k].addTo(map); setChecked(k,true); } else setChecked(k,false);
+  });
+
+  if(layers['limite']){
+    try{ layers['limite'].eachLayer(l=>{ if(l.bringToFront) l.bringToFront(); }); }catch(e){}
+  }
+
+  Object.keys(layers).forEach(k=>{
+    if(!layers[k]) return;
+    if(defaults.indexOf(k) === -1){
+      addPanelItemIfMissing(k);
+    }
+  });
+
+  if(layers['aoi']){
+    try{ map.fitBounds(layers['aoi'].getBounds(), {padding:[40,40]}); }catch(e){}
+  } else if(layers['limite']){
+    try{ map.fitBounds(layers['limite'].getBounds(), {padding:[40,40]}); }catch(e){}
+  }
+
+  updateLegend();
+  renderUploadedLayersList();
+}
+
+/* toggle show/hide layer */
+function toggleLayer(key){
+  const checked = isChecked(key);
+  if(!layers[key] && raw[key]){
+    makeLeafletLayer(key);
+  }
+  if(!checked){
+    if(layers[key]) layers[key].addTo(map);
+    setChecked(key,true);
+    if(key === 'limite' && layers['limite']) layers['limite'].eachLayer(l=>{ if(l.bringToFront) l.bringToFront(); });
+  } else {
+    if(layers[key] && map.hasLayer(layers[key])) map.removeLayer(layers[key]);
+    setChecked(key,false);
+  }
+  updateLegend();
+}
+
+/* visual state helpers */
+function setChecked(key, val){
+  const id = key + '-eye';
+  const el = byId(id);
+  if(el){
+    if(val) el.classList.add('visible'); else el.classList.remove('visible');
+    renderEyeIcon(el, val);
+  }
+}
+function isChecked(key){
+  const el = byId(key + '-eye');
+  return el && el.classList.contains('visible');
+}
+function renderEyeIcon(btnEl, visible){
+  if(!btnEl) return;
+  btnEl.innerHTML = '';
+  if(visible){
+    btnEl.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="#9fe3b6" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"></path><circle cx="12" cy="12" r="3"></circle></svg>`;
+  } else {
+    btnEl.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="#6b7a6e" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.94 17.94A10.94 10.94 0 0 1 12 19c-7 0-11-7-11-7a20.3 20.3 0 0 1 5.06-5.06"></path><path d="M1 1l22 22"></path><path d="M9.88 9.88a3 3 0 0 0 4.24 4.24"></path></svg>`;
+  }
+}
+
+/* add panel item if missing */
+function addPanelItemIfMissing(key){
+  if(byId(key + '-eye')) return;
+  const container = document.querySelector('#layerPanel #otherLayers');
+  if(!container) return;
+  const wrapper = document.createElement('div');
+  wrapper.className = 'layer-item';
+  wrapper.setAttribute('data-key', key);
+  wrapper.id = key + '-item';
+  wrapper.onclick = () => toggleLayer(key);
+
+  const btn = document.createElement('button');
+  btn.className = 'eye-btn';
+  btn.id = key + '-eye';
+  btn.addEventListener('click', (ev)=>{ ev.stopPropagation(); toggleLayer(key); });
+
+  const lbl = document.createElement('div');
+  lbl.className = 'layer-label';
+  const display = DISPLAY_NAMES[key] ? DISPLAY_NAMES[key] : (foundFiles[key] ? foundFiles[key].replace('.geojson','') : key.replace(/_/g,' '));
+  lbl.innerHTML = `<div class="small">${display}</div>`;
+
+  const isBuiltIn = Object.prototype.hasOwnProperty.call(LAYER_CANDIDATES, key);
+  let removeBtn = null;
+  if(!isBuiltIn){
+    removeBtn = document.createElement('button');
+    removeBtn.className = 'remove-btn';
+    removeBtn.title = 'Remover camada';
+    removeBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ff8b8b" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path></svg>`;
+    removeBtn.addEventListener('click', (ev)=>{ ev.stopPropagation(); ev.preventDefault(); confirmAndRemoveLayer(key); });
+  }
+
+  wrapper.appendChild(btn);
+  wrapper.appendChild(lbl);
+  if(removeBtn) wrapper.appendChild(removeBtn);
+  container.appendChild(wrapper);
+  renderEyeIcon(btn, false);
+}
+
+/* remove panel item (UI) */
+function removePanelItem(key){
+  const el = byId(key + '-item');
+  if(el && el.parentNode) el.parentNode.removeChild(el);
+}
+
+/* Legend management (only visible layers) */
+function updateLegend(){
+  let container = document.getElementById('leg-items');
+  if(!container && legendControl && legendControl.getContainer){
+    const cont = legendControl.getContainer();
+    if(cont){
+      cont.innerHTML = '<div style="font-weight:700;margin-bottom:8px;color:#bdecc0">Legenda</div><div id="leg-items"></div>';
+    }
+    container = document.getElementById('leg-items');
+  }
+  if(!container) return;
+  container.innerHTML = '';
+
+  Object.keys(layers).forEach(k=>{
+    const l = layers[k];
+    if(l && map && map.hasLayer(l)){
+      const row = document.createElement('div'); row.className = 'leg-item';
+      const dot = document.createElement('div'); dot.className='leg-dot';
+      if(k === 'limite'){
+        dot.classList.add('hatch');
+        dot.style.width = '18px';
+        dot.style.height = '14px';
+        dot.style.borderRadius = '3px';
+      } else if(k === 'mapbiomas'){
+        dot.style.background = CORES['mapbiomas'] || '#999';
+      } else {
+        dot.style.background = CORES[k] || generateColorForKey(k);
+      }
+      const label = document.createElement('div'); label.className = 'small';
+      label.textContent = DISPLAY_NAMES[k] ? DISPLAY_NAMES[k] : (foundFiles[k] ? foundFiles[k].replace('.geojson','') : k.replace(/_/g,' '));
+      if(k === 'mapbiomas'){
+        label.textContent += " (cores: coluna 'cor')";
+      }
+      row.appendChild(dot); row.appendChild(label); container.appendChild(row);
+    }
+  });
+}
+
+/* ---------------- MAP INIT & BASEMAP ---------------- */
+
+/* reposition leaflet zoom control to the left side of the search bar */
+function repositionZoomControl(){
+  const zb = document.querySelector('.leaflet-control-zoom');
+  const sb = document.querySelector('.search-bar');
+  if(!zb || !sb) return;
+  // make fixed and above map elements
+  zb.style.position = 'fixed';
+  zb.style.zIndex = 1746;
+  zb.style.transition = 'top .12s ease, left .12s ease';
+  // measure rects
+  const sbRect = sb.getBoundingClientRect();
+  const zbRect = zb.getBoundingClientRect();
+  // GAP in pixels between zoom control and search bar (increase to move further)
+  const GAP = 20; // <--- ajustado para 20px
+  // center vertically relative to search bar
+  const top = Math.round(sbRect.top + (sbRect.height - zbRect.height)/2);
+  // place to the left with GAP
+  const left = Math.round(sbRect.left - zbRect.width - GAP);
+  // keep inside viewport bounds
+  const finalTop = (top < 8) ? 8 : top;
+  const finalLeft = (left < 8) ? 8 : left;
+  zb.style.top = finalTop + 'px';
+  zb.style.left = finalLeft + 'px';
+  // ensure controls remain interactive when moved out of map container
+  zb.style.pointerEvents = 'auto';
+  // Also remove leaflet's top-left absolute positioning class effects if any
+  const tl = document.querySelector('.leaflet-top.leaflet-left');
+  if(tl) tl.style.width = '0px';
+}
+
+/* helper to call reposition with a small delay (useful after control is added) */
+function repositionZoomControlLater(delay=80){
+  setTimeout(repositionZoomControl, delay);
+}
+
+/* init map with zoomControl disabled (we'll add manually and reposition) */
+function initMap(){
+  map = L.map('map',{zoomControl:false});
+
+  osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19, attribution:'© OpenStreetMap'});
+  satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19, attribution: 'Tiles © Esri' });
+
+  osmLayer.addTo(map);
+  base = osmLayer;
+  map.setView([-8, -42], 6);
+
+  // add leaflet zoom control (we will move it beside the search bar)
+  L.control.zoom({ position: 'topleft' }).addTo(map);
+
+  legendControl = L.control({position: 'bottomright'});
+  legendControl.onAdd = function () {
+    const div = L.DomUtil.create('div', 'legend');
+    div.id = 'legendBox';
+    div.innerHTML = '<div style="font-weight:700;margin-bottom:8px;color:#bdecc0">Legenda</div><div id="leg-items"></div>';
+    L.DomEvent.disableClickPropagation(div);
+    L.DomEvent.disableScrollPropagation(div);
+    return div;
+  };
+  legendControl.addTo(map);
+
+  // reposition zoom control now and on resize/scroll
+  repositionZoomControlLater(120);
+  window.addEventListener('resize', ()=> repositionZoomControlLater(40));
+  window.addEventListener('scroll', ()=> repositionZoomControlLater(40));
+  // also reposition when the search bar could move (e.g. responsive)
+  const sb = document.querySelector('.search-bar');
+  if(sb){
+    // observe position/size changes (for responsive/mobile)
+    try{
+      const observer = new ResizeObserver(()=> repositionZoomControlLater(20));
+      observer.observe(sb);
+    }catch(e){}
+  }
+}
+
+function switchBasemap(which){
+  if(!map) return;
+  try{
+    if(which === 'osm'){
+      if(map.hasLayer(satelliteLayer)) map.removeLayer(satelliteLayer);
+      if(!map.hasLayer(osmLayer)) osmLayer.addTo(map);
+      base = osmLayer;
+    } else if(which === 'satellite'){
+      if(map.hasLayer(osmLayer)) map.removeLayer(osmLayer);
+      if(!map.hasLayer(satelliteLayer)) satelliteLayer.addTo(map);
+      base = satelliteLayer;
+    }
+    showExportStatus('Basemap: ' + (which === 'osm' ? 'Mapa (OSM)' : 'Satélite (Esri)'), 2000);
+  }catch(e){
+    console.error('Erro trocar basemap', e);
+    alert('Erro ao trocar basemap: ' + (e && e.message ? e.message : e));
+  }
+}
+
+/* ---------------- UI: Menus, Export, Upload ---------------- */
+/* Layer panel controls */
+(function setupLayerPanel(){
+  if(!document.getElementById('layerPanel')){
+    const panel = document.createElement('div');
+    panel.className = 'layer-panel hidden';
+    panel.id = 'layerPanel';
+    panel.setAttribute('role','region');
+    panel.setAttribute('aria-label','Painel de camadas');
+    panel.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <div style="font-weight:700;color:#bdecc0">Camadas</div>
+        <button id="closePanel" title="Fechar painel" style="background:transparent;border:none;color:#bdecc0;cursor:pointer">✕</button>
+      </div>
+      <div id="layerList" style="display:flex;flex-direction:column;gap:4px">
+        <div class="layer-item" data-key="rl" onclick="toggleLayer('rl')">
+          <button class="eye-btn" id="rl-eye" onclick="event.stopPropagation(); toggleLayer('rl')"></button>
+          <div class="layer-label"><div class="small">${DISPLAY_NAMES['rl']}</div></div>
+        </div>
+        <div class="layer-item" data-key="atividade" onclick="toggleLayer('atividade')">
+          <button class="eye-btn" id="atividade-eye" onclick="event.stopPropagation(); toggleLayer('atividade')"></button>
+          <div class="layer-label"><div class="small">${DISPLAY_NAMES['atividade']}</div></div>
+        </div>
+        <div class="layer-item" data-key="app" onclick="toggleLayer('app')">
+          <button class="eye-btn" id="app-eye" onclick="event.stopPropagation(); toggleLayer('app')"></button>
+          <div class="layer-label"><div class="small">${DISPLAY_NAMES['app']}</div></div>
+        </div>
+        <div class="layer-item" data-key="limite" onclick="toggleLayer('limite')">
+          <button class="eye-btn" id="limite-eye" onclick="event.stopPropagation(); toggleLayer('limite')"></button>
+          <div class="layer-label"><div class="small">${DISPLAY_NAMES['limite']}</div></div>
+        </div>
+        <hr style="border:none;border-top:1px solid rgba(255,255,255,0.03);margin:8px 0">
+        <div id="otherLayers"></div>
+      </div>
+    `;
+    document.body.appendChild(panel);
+    document.getElementById('closePanel').addEventListener('click', ()=>{ panel.classList.add('hidden'); });
+  }
+})();
+const layerToggleBtn = byId('layerToggle'), layerPanel = byId('layerPanel');
+layerToggleBtn.addEventListener('click', ()=>{ layerPanel.classList.toggle('hidden'); layerToggleBtn.setAttribute('aria-expanded', !layerPanel.classList.contains('hidden')); repositionZoomControlLater(20); });
+layerToggleBtn.addEventListener('keydown', e=>{ if(e.key==='Enter' || e.key===' ') layerToggleBtn.click(); });
+document.addEventListener('click', (ev)=>{ if(layerPanel.classList.contains('hidden')) return; if(layerPanel.contains(ev.target) || layerToggleBtn.contains(ev.target)) return; layerPanel.classList.add('hidden'); });
+
+/* Export menu */
+const printBtn = byId('printBtn'), exportMenu = byId('exportMenu');
+const exportPDFBtn = byId('exportPDFBtn'), exportPDFLandscapeBtn = byId('exportPDFLandscapeBtn');
+const exportStatus = byId('exportStatus');
+
+printBtn.addEventListener('click', (e)=>{ e.stopPropagation(); const visible = exportMenu.style.display !== 'none'; exportMenu.style.display = visible ? 'none' : 'block'; printBtn.setAttribute('aria-expanded', String(!visible)); });
+document.addEventListener('click', (e)=>{ if(exportMenu && !exportMenu.contains(e.target) && e.target !== printBtn) exportMenu.style.display = 'none'; });
+exportMenu.addEventListener('click', (e)=> e.stopPropagation());
+
+function showExportStatus(msg, timeout=4000){
+  exportStatus.style.display = 'block';
+  exportStatus.textContent = msg;
+  if(timeout>0) setTimeout(()=>{ exportStatus.style.display = 'none'; }, timeout);
+}
+
+/* Export to PDF */
+async function exportMapToPDF(orientation='portrait'){
+  try{
+    showExportStatus('Gerando imagem do mapa — aguarde...');
+    const oldPanelVisible = !layerPanel.classList.contains('hidden');
+    const oldExportVisible = exportMenu.style.display !== 'none';
+    const oldUploadVisible = uploadMenu.style.display !== 'none';
+    const oldBasemapVisible = basemapMenu.style.display !== 'none';
+    layerPanel.classList.add('hidden'); exportMenu.style.display = 'none'; uploadMenu.style.display='none'; basemapMenu.style.display='none';
+
+    await sleep(200);
+
+    const mapEl = document.getElementById('map');
+    const scale = 2;
+    const opts = { useCORS: true, allowTaint: false, logging: false, scale: scale, backgroundColor: null };
+    const canvas = await html2canvas(mapEl, opts);
+
+    if(oldPanelVisible) layerPanel.classList.remove('hidden');
+    if(oldExportVisible) exportMenu.style.display = 'block';
+    if(oldUploadVisible) uploadMenu.style.display = 'block';
+    if(oldBasemapVisible) basemapMenu.style.display = 'block';
+
+    showExportStatus('Convertendo para PDF...');
+    const imgData = canvas.toDataURL('image/jpeg', 0.95);
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF({ orientation: orientation, unit: 'mm', format: 'a4' });
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const pdfHeight = pdf.internal.pageSize.getHeight();
+    const imgW = canvas.width, imgH = canvas.height;
+    let w = pdfWidth, h = (imgH * pdfWidth) / imgW, x = 0, y = (pdfHeight - h) / 2;
+    if(h > pdfHeight){ h = pdfHeight; w = (imgW * pdfHeight) / imgH; x = (pdfWidth - w) / 2; y = 0; }
+    pdf.addImage(imgData, 'JPEG', x, y, w, h, undefined, 'FAST');
+    const filename = `mapa_${new Date().toISOString().slice(0,19).replace(/[:T]/g,'-')}.pdf`;
+    pdf.save(filename);
+    showExportStatus('PDF gerado: ' + filename, 4000);
+  }catch(err){
+    console.error('Erro exportar PDF:', err);
+    showExportStatus('Erro ao gerar PDF — veja console para detalhes', 7000);
+    alert('Erro ao gerar PDF. Verifique o console (F12). Mensagem: ' + (err && err.message ? err.message : err));
+  }
+}
+function sleep(ms){ return new Promise(res=>setTimeout(res, ms)); }
+exportPDFBtn.addEventListener('click', ()=>{ exportMenu.style.display='none'; exportMapToPDF('portrait'); });
+exportPDFLandscapeBtn.addEventListener('click', ()=>{ exportMenu.style.display='none'; exportMapToPDF('landscape'); });
+
+/* Basemap menu */
+const basemapBtn = byId('basemapBtn'), basemapMenu = byId('basemapMenu');
+const bmMap = byId('bmMap'), bmSatellite = byId('bmSatellite');
+basemapBtn.addEventListener('click', (e)=>{ e.stopPropagation(); const visible = basemapMenu.style.display !== 'none'; basemapMenu.style.display = visible ? 'none' : 'block'; basemapBtn.setAttribute('aria-expanded', String(!visible)); });
+document.addEventListener('click', (e)=>{ if(basemapMenu && !basemapMenu.contains(e.target) && e.target !== basemapBtn) basemapMenu.style.display = 'none'; });
+basemapMenu.addEventListener('click', (e)=> e.stopPropagation());
+bmMap.addEventListener('click', ()=>{ basemapMenu.style.display='none'; switchBasemap('osm'); });
+bmSatellite.addEventListener('click', ()=>{ basemapMenu.style.display='none'; switchBasemap('satellite'); });
+
+/* Upload menu */
+const uploadBtn = byId('uploadBtn'), uploadMenu = byId('uploadMenu'), fileInput = byId('fileInput');
+const uploadKmlBtn = byId('uploadKmlBtn'), uploadZipBtn = byId('uploadZipBtn');
+
+uploadBtn.addEventListener('click', (e)=>{ e.stopPropagation(); const visible = uploadMenu.style.display !== 'none'; uploadMenu.style.display = visible ? 'none' : 'block'; uploadBtn.setAttribute('aria-expanded', String(!visible)); });
+document.addEventListener('click', (e)=>{ if(uploadMenu && !uploadMenu.contains(e.target) && e.target !== uploadBtn) uploadMenu.style.display = 'none'; });
+uploadMenu.addEventListener('click', (e)=> e.stopPropagation());
+
+uploadKmlBtn.addEventListener('click', ()=>{ uploadMenu.style.display='none'; fileInput.accept = '.kml,.kmz,.zip'; fileInput.click(); });
+uploadZipBtn.addEventListener('click', ()=>{ uploadMenu.style.display='none'; fileInput.accept = '.zip'; fileInput.click(); });
+
+fileInput.addEventListener('change', handleFileUpload);
+
+async function handleFileUpload(e){
+  const f = e.target.files && e.target.files[0];
+  if(!f) return;
+  const name = f.name || ('uploaded_' + Date.now());
+  showExportStatus('Processando ' + name + ' ...', 6000);
+  try{
+    const lc = name.toLowerCase();
+    if(lc.endsWith('.kml')){
+      const txt = await f.text();
+      const xml = (new DOMParser()).parseFromString(txt, 'text/xml');
+      const geojson = toGeoJSON.kml(xml);
+      await addUserLayer(name, geojson);
+      showExportStatus('KML carregado: ' + name, 3000);
+    } else if(lc.endsWith('.kmz') || lc.endsWith('.zip')){
+      const zip = await JSZip.loadAsync(f);
+      const kmlFile = Object.keys(zip.files).find(p => p.toLowerCase().endsWith('.kml'));
+      if(kmlFile){
+        const kmlTxt = await zip.file(kmlFile).async('string');
+        const xml = (new DOMParser()).parseFromString(kmlTxt, 'text/xml');
+        const geojson = toGeoJSON.kml(xml);
+        await addUserLayer(name, geojson);
+        showExportStatus('KMZ/KML dentro do zip carregado: ' + name, 3000);
+      } else {
+        const arr = await f.arrayBuffer();
+        const geo = await shp(arr);
+        let geojson = null;
+        if(geo && geo.type === 'FeatureCollection') geojson = geo;
+        else {
+          const features = [];
+          Object.keys(geo).forEach(k => {
+            if(geo[k] && geo[k].features) features.push(...geo[k].features);
+          });
+          geojson = { type: 'FeatureCollection', features };
+        }
+        await addUserLayer(name, geojson);
+        showExportStatus('Shapefile carregado: ' + name, 3000);
+      }
+    } else {
+      alert('Formato não suportado. Use .kml, .kmz ou .zip (shapefile).');
+    }
+  }catch(err){
+    console.error('Erro processar upload', err);
+    alert('Erro processar o arquivo: ' + (err && err.message ? err.message : err));
+    showExportStatus('Erro processar upload — ver console', 6000);
+  } finally {
+    fileInput.value = '';
+    renderUploadedLayersList();
+  }
+}
+
+/* adiciona camada do usuário no mapa e UI */
+async function addUserLayer(filename, geojson){
+  if(!geojson) throw new Error('GeoJSON inválido');
+  let baseKey = filename.replace(/\s+/g,'_').replace(/\.[^/.]+$/,'').replace(/[^\w\-]/g,'').toLowerCase();
+  let key = baseKey;
+  let idx = 1;
+  while(raw[key] || layers[key]){ key = baseKey + '_' + idx; idx++; }
+  raw[key] = geojson;
+  foundFiles[key] = filename;
+  raw[key] = reprojectIfNeeded(raw[key], key);
+  makeLeafletLayer(key);
+  if(layers[key]) layers[key].addTo(map);
+  addPanelItemIfMissing(key);
+  setChecked(key,true);
+  if(layers['limite']) layers['limite'].eachLayer(l=>{ if(l.bringToFront) l.bringToFront(); });
+  updateLegend();
+  renderUploadedLayersList();
+}
+
+/* função de confirmação e remoção */
+function confirmAndRemoveLayer(key){
+  const name = foundFiles[key] || key;
+  if(!confirm(`Remover a camada "${name}" do mapa? Esta ação não pode ser desfeita.`)) return;
+  removeUserLayer(key);
+}
+
+/* remove camada adicionada pelo usuário */
+function removeUserLayer(key){
+  try{
+    if(layers[key] && map.hasLayer(layers[key])) map.removeLayer(layers[key]);
+    delete layers[key];
+    delete raw[key];
+    delete foundFiles[key];
+    removePanelItem(key);
+    const li = byId('uploaded-' + key);
+    if(li && li.parentNode) li.parentNode.removeChild(li);
+    renderUploadedLayersList();
+    updateLegend();
+    showExportStatus('Camada removida: ' + key, 2500);
+  }catch(e){
+    console.error('Erro remover camada', e);
+    alert('Erro ao remover camada: ' + (e && e.message ? e.message : e));
+  }
+}
+
+/* renderiza a lista de camadas adicionadas no menu "Adicionar dados" */
+function renderUploadedLayersList(){
+  const container = byId('uploadedList');
+  const noUploaded = byId('noUploaded');
+  if(!container) return;
+  container.innerHTML = '';
+  const userKeys = Object.keys(foundFiles).filter(k => !Object.prototype.hasOwnProperty.call(LAYER_CANDIDATES, k));
+  if(userKeys.length === 0){
+    noUploaded.style.display = 'block';
+    return;
+  } else {
+    noUploaded.style.display = 'none';
+  }
+  userKeys.forEach(k => {
+    const name = foundFiles[k] || k;
+    const row = document.createElement('div');
+    row.id = 'uploaded-' + k;
+    row.style.display = 'flex';
+    row.style.alignItems = 'center';
+    row.style.justifyContent = 'space-between';
+    row.style.padding = '6px';
+    row.style.borderRadius = '6px';
+    row.style.marginBottom = '6px';
+    row.style.background = 'rgba(255,255,255,0.01)';
+    const left = document.createElement('div');
+    left.style.display = 'flex';
+    left.style.alignItems = 'center';
+    left.style.gap = '8px';
+    const eye = document.createElement('button');
+    eye.className = 'eye-btn';
+    eye.id = k + '-eye-upload';
+    const visible = layers[k] && map && map.hasLayer(layers[k]);
+    renderEyeIcon(eye, visible);
+    eye.addEventListener('click', (ev) => { ev.stopPropagation(); toggleLayer(k); });
+    const label = document.createElement('div');
+    label.style.fontSize = '13px';
+    label.style.color = 'var(--txt)';
+    label.textContent = name;
+    left.appendChild(eye);
+    left.appendChild(label);
+    const right = document.createElement('div');
+    const btn = document.createElement('button');
+    btn.className = 'remove-btn';
+    btn.title = 'Remover camada';
+    btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ff8b8b" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path></svg>`;
+    btn.addEventListener('click', (ev)=>{ ev.stopPropagation(); confirmAndRemoveLayer(k); });
+    right.appendChild(btn);
+    row.appendChild(left);
+    row.appendChild(right);
+    container.appendChild(row);
+  });
+}
+
+/* ---------------- Loading / Startup ---------------- */
+byId('loadingClose').addEventListener('click', ()=>{ const l=byId('loading'); if(l) l.style.display='none'; if(map) setTimeout(()=>map.invalidateSize(),200); });
+setTimeout(()=>{ const l=byId('loading'); if(l && l.style.display !== 'none') l.style.display='none'; if(map) setTimeout(()=>map.invalidateSize(),200); }, 15000);
+
+/* ---------------- Search (leve e não-intrusiva) ---------------- */
+/* Implementação simples com Nominatim — não altera o fluxo de carregamento das camadas */
+(function setupSearch(){
+  const input = byId('locSearchInput');
+  const btn = byId('locSearchBtn');
+  const clearBtn = byId('locClearBtn');
+  const resultsBox = byId('searchResults');
+  let searchMarker = null;
+
+  function ensureMap(){ if(!map) initMap(); }
+
+  function clearResults(){ resultsBox.style.display = 'none'; resultsBox.innerHTML = ''; }
+  function clearMarker(){ if(searchMarker){ try{ map.removeLayer(searchMarker); }catch(e){} searchMarker = null; } }
+
+  async function searchQ(q){
+    if(!q || !q.trim()){ clearResults(); return; }
+    ensureMap();
+    resultsBox.innerHTML = '<div class="search-noresults">Buscando...</div>';
+    resultsBox.style.display = 'block';
+    const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&q=${encodeURIComponent(q)}&addressdetails=1&limit=5`;
+    try{
+      const resp = await fetch(url);
+      const data = await resp.json();
+      if(!Array.isArray(data) || data.length === 0){
+        resultsBox.innerHTML = '<div class="search-noresults">Nenhum resultado encontrado.</div>';
+        return;
+      }
+      resultsBox.innerHTML = '';
+      data.forEach(item => {
+        const el = document.createElement('div');
+        el.className = 'search-result-item';
+        el.tabIndex = 0;
+        el.innerHTML = `<div style="font-weight:600">${escapeHtml(item.display_name)}</div><div style="font-size:12px;color:#476b5a;margin-top:4px">Tipo: ${escapeHtml(item.type || '')}</div>`;
+        el.addEventListener('click', ()=> selectResult(item));
+        el.addEventListener('keydown', (e)=>{ if(e.key==='Enter') selectResult(item); });
+        resultsBox.appendChild(el);
+      });
+    }catch(err){
+      console.error('Erro Nominatim', err);
+      resultsBox.innerHTML = '<div class="search-noresults">Erro na busca.</div>';
+    }
+  }
+
+  function selectResult(item){
+    clearResults();
+    ensureMap();
+    clearMarker();
+    const lat = parseFloat(item.lat);
+    const lon = parseFloat(item.lon);
+    if(!isNaN(lat) && !isNaN(lon)){
+      searchMarker = L.marker([lat, lon]).addTo(map);
+      searchMarker.bindPopup(item.display_name || `${lat}, ${lon}`).openPopup();
+      if(item.boundingbox && item.boundingbox.length === 4){
+        const bb = [
+          [parseFloat(item.boundingbox[0]), parseFloat(item.boundingbox[2])],
+          [parseFloat(item.boundingbox[1]), parseFloat(item.boundingbox[3])]
+        ];
+        try{ map.fitBounds(bb, {padding:[36,36]}); }catch(e){ map.setView([lat, lon], 15); }
+      } else {
+        map.setView([lat, lon], 15);
+      }
+    } else {
+      alert('Coordenadas inválidas no resultado.');
+    }
+  }
+
+  btn.addEventListener('click', ()=> searchQ(input.value));
+  input.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ e.preventDefault(); searchQ(input.value); } if(e.key==='Escape'){ clearResults(); }});
+  clearBtn.addEventListener('click', ()=>{ input.value=''; clearResults(); clearMarker(); });
+
+  document.addEventListener('click', (ev)=>{
+    const sb = document.querySelector('.search-bar');
+    if(!sb) return;
+    if(sb.contains(ev.target) || resultsBox.contains(ev.target)) return;
+    clearResults();
+  });
+})();
+
+/* ---------------- Inicialização principal ---------------- */
+async function start(){
+  try{
+    logStatus('Iniciando busca de arquivos...');
+    await findAndLoadAll();
+    logStatus('Construindo camadas...');
+    buildAndShow();
+    logStatus('Concluído.');
+  }catch(e){
+    console.error(e);
+    logStatus('Erro geral: ' + (e.message||e), true);
+  } finally {
+    const l = byId('loading'); if(l) l.style.display='none';
+    if(map) setTimeout(()=>{ map.invalidateSize(); repositionZoomControlLater(60); },200);
+  }
+}
+window.addEventListener('load', start);
+</script>
+</body>
+</html>
