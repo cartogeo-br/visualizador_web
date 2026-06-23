@@ -34,7 +34,6 @@
     box-shadow:0 6px 18px rgba(0,0,0,0.5); border-bottom:1px solid rgba(255,255,255,0.02);
   }
   #topbar .title{font-weight:700;color:#dfffe8;display:flex;align-items:center;gap:12px;font-size:15px}
-  #topbar .title .logo-placeholder{width:36px;height:36px;border-radius:8px;background:rgba(255,255,255,0.03);display:flex;align-items:center;justify-content:center;color:var(--muted);font-weight:700}
   #topbar .title img.logo { width:100px;height:100px;border-radius:8px;object-fit:contain; background:rgba(255,255,255,0.02);padding:4px }
   .top-actions{display:flex;align-items:center;gap:10px}
   .action-btn{
@@ -43,11 +42,11 @@
     box-shadow:0 8px 26px rgba(0,0,0,0.5);
   }
   .action-btn:focus{outline:2px solid rgba(34,197,94,0.18)}
-  .export-menu, .basemap-menu, .upload-menu{
+  .export-menu, .basemap-menu, .upload-menu, .download-menu{
     position: absolute;
     top:62px;
     z-index:1750;
-    width:260px;
+    width:320px;
     background: rgba(5,10,8,0.96);
     border:1px solid rgba(255,255,255,0.04);
     border-radius:8px;
@@ -55,12 +54,13 @@
     box-shadow:0 8px 30px rgba(0,0,0,0.6);
   }
   .export-menu{ right:176px; }
+  .download-menu{ right:244px; }
   .upload-menu{ right:110px; }
   .basemap-menu{ right:16px; }
-  .export-item, .basemap-item, .upload-item{
+  .export-item, .basemap-item, .upload-item, .download-item{
     padding:8px;border-radius:6px;cursor:pointer;color:var(--txt)
   }
-  .export-item:hover, .basemap-item:hover, .upload-item:hover{background:rgba(255,255,255,0.02)}
+  .export-item:hover, .basemap-item:hover, .upload-item:hover, .download-item:hover{background:rgba(255,255,255,0.02)}
   .layer-panel{
     position:fixed; top:72px; right:16px; z-index:1650;
     width:320px; max-height:68vh; overflow:auto; border-radius:10px; padding:12px;
@@ -80,13 +80,14 @@
   .layer-label .small{font-size:13px;color:#bfe8c9}
   .remove-btn{width:28px;height:28px;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;background:transparent;border:none;color:#ff8b8b;cursor:pointer}
   .remove-btn:hover{background:rgba(255,100,100,0.06)}
+  .select-btn{width:18px;height:18px;border-radius:4px;border:1px solid rgba(255,255,255,0.06);background:transparent;flex:0 0 18px;display:inline-flex;align-items:center;justify-content:center;color:var(--muted-dim);cursor:pointer}
+  .select-btn.selected{background:linear-gradient(180deg, rgba(18,77,51,0.18), rgba(18,77,51,0.08));border-color:rgba(130,245,155,0.14);color:var(--muted)}
   .legend{
     width:220px;background:rgba(5,10,8,0.95);border-radius:10px;padding:10px;border:1px solid rgba(255,255,255,0.03);
     color:var(--txt); font-size:13px
   }
   .leg-item{display:flex;align-items:center;gap:8px;margin-bottom:6px}
   .leg-dot{width:14px;height:14px;border-radius:3px;border:1px solid rgba(0,0,0,0.16)}
-  /* hatch pattern for Limite legend square */
   .hatch {
     background-color: transparent;
     background-image: repeating-linear-gradient(45deg, #000 0, #000 2px, transparent 2px, transparent 6px);
@@ -104,11 +105,10 @@
   #exportStatus{position:fixed; top:64px; right:16px; z-index:1760; color:#dfffe8; background:rgba(6,18,10,0.85); border-radius:6px;padding:6px 10px; display:none; font-size:13px}
   input[type="file"]{ display:none; }
 
-  /* Search bar styles (discretas; fixas abaixo do topbar; não altera layout) */
   .search-bar {
     position:fixed;
     left:70px;
-    top:66px; /* logo abaixo da topbar de 56px */
+    top:66px;
     z-index:1745;
     width:360px;
     max-width:calc(100% - 96px);
@@ -121,79 +121,21 @@
     box-shadow: 0 6px 20px rgba(3,6,3,0.6);
     border:1px solid rgba(0,0,0,0.12);
   }
-  .search-input {
-    flex:1;
-    height:38px;
-    border-radius:8px;
-    border:1px solid rgba(0,0,0,0.08);
-    padding:8px 12px;
-    font-size:13px;
-    color:#0b2a1a;
-    background: #fff;
-  }
-  .search-btn {
-    height:36px;
-    min-width:44px;
-    background:#6b21a8;
-    border-radius:8px;
-    border:none;
-    color:white;
-    display:inline-flex;
-    align-items:center;
-    justify-content:center;
-    padding:6px;
-    cursor:pointer;
-  }
-  .search-clear {
-    height:36px;
-    min-width:36px;
-    background: transparent;
-    border-radius:8px;
-    border:1px solid rgba(0,0,0,0.06);
-    color:#6b21a8;
-    display:inline-flex;
-    align-items:center;
-    justify-content:center;
-    padding:6px;
-    cursor:pointer;
-  }
-  .search-results {
-    position:fixed;
-    left:16px;
-    top:66px;
-    margin-top:48px;
-    z-index:1746;
-    width:360px;
-    max-width:calc(100% - 96px);
-    background: rgba(255,255,255,0.98);
-    border-radius:8px;
-    box-shadow: 0 8px 30px rgba(0,0,0,0.35);
-    overflow: auto;
-    max-height:40vh;
-    border:1px solid rgba(0,0,0,0.08);
-    display:none;
-    padding:6px;
-  }
-  .search-result-item {
-    padding:8px;
-    border-radius:6px;
-    cursor:pointer;
-    font-size:13px;
-    color:#08321f;
-  }
+  .search-input { flex:1; height:38px; border-radius:8px; border:1px solid rgba(0,0,0,0.08); padding:8px 12px; font-size:13px; color:#0b2a1a; background: #fff; }
+  .search-btn, .search-clear { height:36px; display:inline-flex; align-items:center; justify-content:center; padding:6px; cursor:pointer; }
+  .search-btn { min-width:44px; background:#6b21a8; border-radius:8px; border:none; color:white; }
+  .search-clear { min-width:36px; background: transparent; border-radius:8px; border:1px solid rgba(0,0,0,0.06); color:#6b21a8; }
+  .search-results { position:fixed; left:16px; top:66px; margin-top:48px; z-index:1746; width:360px; max-width:calc(100% - 96px); background: rgba(255,255,255,0.98); border-radius:8px; box-shadow: 0 8px 30px rgba(0,0,0,0.35); overflow: auto; max-height:40vh; border:1px solid rgba(0,0,0,0.08); display:none; padding:6px; }
+  .search-result-item { padding:8px; border-radius:6px; cursor:pointer; font-size:13px; color:#08321f; }
   .search-result-item:hover { background: rgba(0,0,0,0.04); }
   .search-noresults { padding:8px; color:#666; font-size:13px }
-  @media (max-width:480px){
-    .search-bar, .search-results { left:8px; right:8px; width:auto; max-width:calc(100% - 16px); }
-  }
+  @media (max-width:480px){ .search-bar, .search-results { left:8px; right:8px; width:auto; max-width:calc(100% - 16px); } }
 
-  /* Ensure leaflet zoom control doesn't get clipped when moved out of map container */
-  .leaflet-control-zoom {
-    /* styles will be overridden by JS to be fixed and positioned besides the search bar */
-    box-shadow: 0 6px 22px rgba(0,0,0,0.45);
-    border-radius:8px;
-    overflow:hidden;
-  }
+  .download-layer-row { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:6px; border-radius:6px; margin-bottom:6px; background: rgba(255,255,255,0.01); }
+  .download-layer-name { font-size:13px; color:var(--txt); flex:1; }
+  .download-format-btn { padding:6px 8px; font-size:13px; cursor:pointer; border-radius:6px; background:transparent; border:1px solid rgba(255,255,255,0.04); color:var(--txt); margin-left:6px; }
+  .download-format-btn:hover { background: rgba(255,255,255,0.02); }
+  .download-empty { font-size:13px; color:#9fbfa1; padding:6px; }
 </style>
 </head>
 <body>
@@ -205,7 +147,7 @@
   <button class="loading-close" id="loadingClose">Fechar (mostrar mapa)</button>
 </div>
 
-<!-- Top Bar: Imprimir, Camadas, Adicionar Dados, Basemap -->
+<!-- Top Bar -->
 <div id="topbar" role="banner" aria-label="Barra superior">
   <div class="title">
     <img src="logo_cartogeo.png" alt="Logo Cartogeo" class="logo" onerror="this.style.display='none'"/>
@@ -216,6 +158,14 @@
   </div>
 
   <div class="top-actions" aria-hidden="false">
+    <button id="downloadBtn" class="action-btn" title="Download de camadas" aria-haspopup="true" aria-expanded="false" style="background:transparent;border:none">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9fe3b6" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+        <polyline points="7 10 12 15 17 10"></polyline>
+        <line x1="12" y1="15" x2="12" y2="3"></line>
+      </svg>
+    </button>
+
     <button id="printBtn" class="action-btn" title="Exportar / Imprimir" aria-haspopup="true" aria-expanded="false" style="background:transparent;border:none">
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9fe3b6" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
         <path d="M6 9V2h12v7"></path><path d="M6 18H4a2 2 0 0 1-2-2v-3h20v3a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8" rx="2"></rect>
@@ -244,7 +194,7 @@
   </div>
 </div>
 
-<!-- SEARCH BAR (ADICIONADA) - discreta, fixa logo abaixo do topbar -->
+<!-- SEARCH BAR -->
 <div class="search-bar" role="search" aria-label="Pesquisar local">
   <input id="locSearchInput" class="search-input" type="search" placeholder="Encontrar endereço ou lugar" aria-label="Encontrar endereço ou lugar" />
   <button id="locSearchBtn" class="search-btn" title="Pesquisar" aria-label="Pesquisar">
@@ -258,12 +208,19 @@
 
 <div id="searchResults" class="search-results" role="listbox" aria-label="Resultados da pesquisa"></div>
 
-<!-- Export, Upload and Basemap menus -->
+<!-- Menus -->
 <div id="exportMenu" class="export-menu" style="display:none" role="menu" aria-hidden="true">
   <div style="font-weight:700;color:#bdecc0;margin-bottom:6px">Exportar mapa</div>
   <div class="export-item" id="exportPDFBtn">Exportar como PDF (A4)</div>
   <div class="export-item" id="exportPDFLandscapeBtn">Exportar como PDF (A4 Paisagem)</div>
   <div style="font-size:12px;color:#9fbfa1;margin-top:6px">A exportação captura o mapa e as legendas visíveis. Tiles sem CORS podem não aparecer.</div>
+</div>
+
+<!-- Download menu simplificado: apenas GeoJSON por camada visível -->
+<div id="downloadMenu" class="download-menu" style="display:none" role="menu" aria-hidden="true">
+  <div style="font-weight:700;color:#bdecc0;margin-bottom:6px">Baixar camadas</div>
+  <div id="downloadLayersList" style="max-height:320px;overflow:auto;"></div>
+  <div style="font-size:12px;color:#9fbfa1;margin-top:6px">A lista exibe apenas as camadas atualmente visíveis no mapa. Clique em "GeoJSON" para baixar a camada.</div>
 </div>
 
 <div id="uploadMenu" class="upload-menu" style="display:none" role="menu" aria-hidden="true">
@@ -275,7 +232,6 @@
 
   <hr style="border:none;border-top:1px solid rgba(255,255,255,0.03);margin:8px 0">
 
-  <!-- Lista dinâmica de camadas adicionadas pelo usuário (aparece após upload) -->
   <div style="font-weight:700;color:#bdecc0;margin-bottom:6px">Camadas adicionadas</div>
   <div id="uploadedList" style="max-height:220px;overflow:auto;"></div>
   <div id="noUploaded" class="small" style="margin-top:6px;color:#9fbfa1">Nenhuma camada adicionada.</div>
@@ -287,10 +243,10 @@
   <div class="basemap-item" id="bmSatellite">Satélite (Esri)</div>
 </div>
 
-<!-- hidden file inputs -->
+<!-- hidden file input -->
 <input type="file" id="fileInput" accept=".kml,.kmz,.zip" />
 
-<!-- small export status -->
+<!-- export status -->
 <div id="exportStatus"></div>
 
 <div id="app" style="margin-top:56px">
@@ -314,7 +270,6 @@ const LAYER_CANDIDATES = {
   areas_prioritarias: ['areas_prioritarias_conservacao.geojson','areas_prioritarias_conservacao (1).geojson']
 };
 
-/* cores e nomes display – atualizadas conforme pedido */
 const CORES = {
   rl:'#16A34A',
   atividade:'#FB923C',
@@ -574,7 +529,7 @@ function generateColorForKey(key){
   return `hsl(${h} 80% 50%)`;
 }
 
-/* build and show layers */
+/* build and show */
 function buildAndShow(){
   if(!map) initMap();
 
@@ -664,6 +619,12 @@ function addPanelItemIfMissing(key){
   wrapper.id = key + '-item';
   wrapper.onclick = () => toggleLayer(key);
 
+  const selectBtn = document.createElement('button');
+  selectBtn.className = 'select-btn';
+  selectBtn.id = key + '-select';
+  selectBtn.title = 'Selecionar camada (não utilizado no novo menu de download)';
+  selectBtn.addEventListener('click', (ev)=>{ ev.stopPropagation(); toggleSelect(key); });
+
   const btn = document.createElement('button');
   btn.className = 'eye-btn';
   btn.id = key + '-eye';
@@ -684,6 +645,7 @@ function addPanelItemIfMissing(key){
     removeBtn.addEventListener('click', (ev)=>{ ev.stopPropagation(); ev.preventDefault(); confirmAndRemoveLayer(key); });
   }
 
+  wrapper.appendChild(selectBtn);
   wrapper.appendChild(btn);
   wrapper.appendChild(lbl);
   if(removeBtn) wrapper.appendChild(removeBtn);
@@ -695,6 +657,17 @@ function addPanelItemIfMissing(key){
 function removePanelItem(key){
   const el = byId(key + '-item');
   if(el && el.parentNode) el.parentNode.removeChild(el);
+}
+
+/* toggle select (for download) */
+function toggleSelect(key){
+  const el = byId(key + '-select');
+  if(!el) return;
+  el.classList.toggle('selected');
+}
+function isSelected(key){
+  const el = byId(key + '-select');
+  return el && el.classList.contains('selected');
 }
 
 /* Legend management (only visible layers) */
@@ -736,56 +709,37 @@ function updateLegend(){
 }
 
 /* ---------------- MAP INIT & BASEMAP ---------------- */
-
-/* reposition leaflet zoom control to the left side of the search bar */
 function repositionZoomControl(){
   const zb = document.querySelector('.leaflet-control-zoom');
   const sb = document.querySelector('.search-bar');
   if(!zb || !sb) return;
-  // make fixed and above map elements
   zb.style.position = 'fixed';
   zb.style.zIndex = 1746;
   zb.style.transition = 'top .12s ease, left .12s ease';
-  // measure rects
   const sbRect = sb.getBoundingClientRect();
   const zbRect = zb.getBoundingClientRect();
-  // GAP in pixels between zoom control and search bar (increase to move further)
-  const GAP = 20; // <--- ajustado para 20px
-  // center vertically relative to search bar
+  const GAP = 20;
   const top = Math.round(sbRect.top + (sbRect.height - zbRect.height)/2);
-  // place to the left with GAP
   const left = Math.round(sbRect.left - zbRect.width - GAP);
-  // keep inside viewport bounds
   const finalTop = (top < 8) ? 8 : top;
   const finalLeft = (left < 8) ? 8 : left;
   zb.style.top = finalTop + 'px';
   zb.style.left = finalLeft + 'px';
-  // ensure controls remain interactive when moved out of map container
   zb.style.pointerEvents = 'auto';
-  // Also remove leaflet's top-left absolute positioning class effects if any
   const tl = document.querySelector('.leaflet-top.leaflet-left');
   if(tl) tl.style.width = '0px';
 }
 
-/* helper to call reposition with a small delay (useful after control is added) */
-function repositionZoomControlLater(delay=80){
-  setTimeout(repositionZoomControl, delay);
-}
+function repositionZoomControlLater(delay=80){ setTimeout(repositionZoomControl, delay); }
 
-/* init map with zoomControl disabled (we'll add manually and reposition) */
 function initMap(){
   map = L.map('map',{zoomControl:false});
-
   osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19, attribution:'© OpenStreetMap'});
   satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19, attribution: 'Tiles © Esri' });
-
   osmLayer.addTo(map);
   base = osmLayer;
   map.setView([-8, -42], 6);
-
-  // add leaflet zoom control (we will move it beside the search bar)
   L.control.zoom({ position: 'topleft' }).addTo(map);
-
   legendControl = L.control({position: 'bottomright'});
   legendControl.onAdd = function () {
     const div = L.DomUtil.create('div', 'legend');
@@ -796,15 +750,11 @@ function initMap(){
     return div;
   };
   legendControl.addTo(map);
-
-  // reposition zoom control now and on resize/scroll
   repositionZoomControlLater(120);
   window.addEventListener('resize', ()=> repositionZoomControlLater(40));
   window.addEventListener('scroll', ()=> repositionZoomControlLater(40));
-  // also reposition when the search bar could move (e.g. responsive)
   const sb = document.querySelector('.search-bar');
   if(sb){
-    // observe position/size changes (for responsive/mobile)
     try{
       const observer = new ResizeObserver(()=> repositionZoomControlLater(20));
       observer.observe(sb);
@@ -832,7 +782,6 @@ function switchBasemap(which){
 }
 
 /* ---------------- UI: Menus, Export, Upload ---------------- */
-/* Layer panel controls */
 (function setupLayerPanel(){
   if(!document.getElementById('layerPanel')){
     const panel = document.createElement('div');
@@ -847,18 +796,22 @@ function switchBasemap(which){
       </div>
       <div id="layerList" style="display:flex;flex-direction:column;gap:4px">
         <div class="layer-item" data-key="rl" onclick="toggleLayer('rl')">
+          <button class="select-btn" id="rl-select" onclick="event.stopPropagation(); toggleSelect('rl')"></button>
           <button class="eye-btn" id="rl-eye" onclick="event.stopPropagation(); toggleLayer('rl')"></button>
           <div class="layer-label"><div class="small">${DISPLAY_NAMES['rl']}</div></div>
         </div>
         <div class="layer-item" data-key="atividade" onclick="toggleLayer('atividade')">
+          <button class="select-btn" id="atividade-select" onclick="event.stopPropagation(); toggleSelect('atividade')"></button>
           <button class="eye-btn" id="atividade-eye" onclick="event.stopPropagation(); toggleLayer('atividade')"></button>
           <div class="layer-label"><div class="small">${DISPLAY_NAMES['atividade']}</div></div>
         </div>
         <div class="layer-item" data-key="app" onclick="toggleLayer('app')">
+          <button class="select-btn" id="app-select" onclick="event.stopPropagation(); toggleSelect('app')"></button>
           <button class="eye-btn" id="app-eye" onclick="event.stopPropagation(); toggleLayer('app')"></button>
           <div class="layer-label"><div class="small">${DISPLAY_NAMES['app']}</div></div>
         </div>
         <div class="layer-item" data-key="limite" onclick="toggleLayer('limite')">
+          <button class="select-btn" id="limite-select" onclick="event.stopPropagation(); toggleSelect('limite')"></button>
           <button class="eye-btn" id="limite-eye" onclick="event.stopPropagation(); toggleLayer('limite')"></button>
           <div class="layer-label"><div class="small">${DISPLAY_NAMES['limite']}</div></div>
         </div>
@@ -881,7 +834,6 @@ const exportPDFBtn = byId('exportPDFBtn'), exportPDFLandscapeBtn = byId('exportP
 const exportStatus = byId('exportStatus');
 
 printBtn.addEventListener('click', (e)=>{ e.stopPropagation(); const visible = exportMenu.style.display !== 'none'; exportMenu.style.display = visible ? 'none' : 'block'; printBtn.setAttribute('aria-expanded', String(!visible)); });
-document.addEventListener('click', (e)=>{ if(exportMenu && !exportMenu.contains(e.target) && e.target !== printBtn) exportMenu.style.display = 'none'; });
 exportMenu.addEventListener('click', (e)=> e.stopPropagation());
 
 function showExportStatus(msg, timeout=4000){
@@ -898,7 +850,8 @@ async function exportMapToPDF(orientation='portrait'){
     const oldExportVisible = exportMenu.style.display !== 'none';
     const oldUploadVisible = uploadMenu.style.display !== 'none';
     const oldBasemapVisible = basemapMenu.style.display !== 'none';
-    layerPanel.classList.add('hidden'); exportMenu.style.display = 'none'; uploadMenu.style.display='none'; basemapMenu.style.display='none';
+    const oldDownloadVisible = downloadMenu.style.display !== 'none';
+    layerPanel.classList.add('hidden'); exportMenu.style.display = 'none'; uploadMenu.style.display='none'; basemapMenu.style.display='none'; downloadMenu.style.display='none';
 
     await sleep(200);
 
@@ -911,6 +864,7 @@ async function exportMapToPDF(orientation='portrait'){
     if(oldExportVisible) exportMenu.style.display = 'block';
     if(oldUploadVisible) uploadMenu.style.display = 'block';
     if(oldBasemapVisible) basemapMenu.style.display = 'block';
+    if(oldDownloadVisible) downloadMenu.style.display = 'block';
 
     showExportStatus('Convertendo para PDF...');
     const imgData = canvas.toDataURL('image/jpeg', 0.95);
@@ -939,17 +893,30 @@ exportPDFLandscapeBtn.addEventListener('click', ()=>{ exportMenu.style.display='
 const basemapBtn = byId('basemapBtn'), basemapMenu = byId('basemapMenu');
 const bmMap = byId('bmMap'), bmSatellite = byId('bmSatellite');
 basemapBtn.addEventListener('click', (e)=>{ e.stopPropagation(); const visible = basemapMenu.style.display !== 'none'; basemapMenu.style.display = visible ? 'none' : 'block'; basemapBtn.setAttribute('aria-expanded', String(!visible)); });
-document.addEventListener('click', (e)=>{ if(basemapMenu && !basemapMenu.contains(e.target) && e.target !== basemapBtn) basemapMenu.style.display = 'none'; });
 basemapMenu.addEventListener('click', (e)=> e.stopPropagation());
 bmMap.addEventListener('click', ()=>{ basemapMenu.style.display='none'; switchBasemap('osm'); });
 bmSatellite.addEventListener('click', ()=>{ basemapMenu.style.display='none'; switchBasemap('satellite'); });
+
+/* Download menu (only GeoJSON now) */
+const downloadBtn = byId('downloadBtn'), downloadMenu = byId('downloadMenu');
+const downloadLayersList = byId('downloadLayersList');
+
+downloadBtn.addEventListener('click', (e)=>{ 
+  e.stopPropagation(); 
+  const visible = downloadMenu.style.display !== 'none'; 
+  downloadMenu.style.display = visible ? 'none' : 'block'; 
+  downloadBtn.setAttribute('aria-expanded', String(!visible)); 
+  if(!visible) {
+    buildDownloadList(); // populate when opening
+  }
+});
+downloadMenu.addEventListener('click', (e)=> e.stopPropagation());
 
 /* Upload menu */
 const uploadBtn = byId('uploadBtn'), uploadMenu = byId('uploadMenu'), fileInput = byId('fileInput');
 const uploadKmlBtn = byId('uploadKmlBtn'), uploadZipBtn = byId('uploadZipBtn');
 
 uploadBtn.addEventListener('click', (e)=>{ e.stopPropagation(); const visible = uploadMenu.style.display !== 'none'; uploadMenu.style.display = visible ? 'none' : 'block'; uploadBtn.setAttribute('aria-expanded', String(!visible)); });
-document.addEventListener('click', (e)=>{ if(uploadMenu && !uploadMenu.contains(e.target) && e.target !== uploadBtn) uploadMenu.style.display = 'none'; });
 uploadMenu.addEventListener('click', (e)=> e.stopPropagation());
 
 uploadKmlBtn.addEventListener('click', ()=>{ uploadMenu.style.display='none'; fileInput.accept = '.kml,.kmz,.zip'; fileInput.click(); });
@@ -1080,6 +1047,10 @@ function renderUploadedLayersList(){
     left.style.display = 'flex';
     left.style.alignItems = 'center';
     left.style.gap = '8px';
+    const select = document.createElement('button');
+    select.className = 'select-btn';
+    select.id = k + '-select';
+    select.addEventListener('click', (ev)=>{ ev.stopPropagation(); toggleSelect(k); });
     const eye = document.createElement('button');
     eye.className = 'eye-btn';
     eye.id = k + '-eye-upload';
@@ -1090,6 +1061,7 @@ function renderUploadedLayersList(){
     label.style.fontSize = '13px';
     label.style.color = 'var(--txt)';
     label.textContent = name;
+    left.appendChild(select);
     left.appendChild(eye);
     left.appendChild(label);
     const right = document.createElement('div');
@@ -1110,7 +1082,6 @@ byId('loadingClose').addEventListener('click', ()=>{ const l=byId('loading'); if
 setTimeout(()=>{ const l=byId('loading'); if(l && l.style.display !== 'none') l.style.display='none'; if(map) setTimeout(()=>map.invalidateSize(),200); }, 15000);
 
 /* ---------------- Search (leve e não-intrusiva) ---------------- */
-/* Implementação simples com Nominatim — não altera o fluxo de carregamento das camadas */
 (function setupSearch(){
   const input = byId('locSearchInput');
   const btn = byId('locSearchBtn');
@@ -1187,6 +1158,95 @@ setTimeout(()=>{ const l=byId('loading'); if(l && l.style.display !== 'none') l.
   });
 })();
 
+/* ---------------- Download helpers (APENAS GEOJSON) ---------------- */
+function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(()=>{ document.body.removeChild(a); URL.revokeObjectURL(url); }, 500);
+}
+function downloadObjectAsJson(obj, filename){
+  const str = JSON.stringify(obj, null, 2);
+  const blob = new Blob([str], {type: 'application/vnd.geo+json;charset=utf-8'});
+  downloadBlob(blob, filename);
+}
+
+/* Get visible layer keys (layers currently shown on map) */
+function getVisibleLayerKeys(){ return Object.keys(layers).filter(k => layers[k] && map && map.hasLayer(layers[k])); }
+
+/* Build download list inside menu: one row per visible layer with GeoJSON button */
+function buildDownloadList(){
+  downloadLayersList.innerHTML = '';
+  const keys = getVisibleLayerKeys();
+  if(keys.length === 0){
+    const empty = document.createElement('div');
+    empty.className = 'download-empty';
+    empty.textContent = 'Nenhuma camada visível para download.';
+    downloadLayersList.appendChild(empty);
+    return;
+  }
+
+  keys.forEach(k => {
+    try{
+      const row = document.createElement('div');
+      row.className = 'download-layer-row';
+      const nameDiv = document.createElement('div');
+      nameDiv.className = 'download-layer-name';
+      const display = DISPLAY_NAMES[k] ? DISPLAY_NAMES[k] : (foundFiles[k] ? foundFiles[k].replace(/\.[^/.]+$/,'') : k);
+      nameDiv.textContent = display;
+      row.appendChild(nameDiv);
+
+      // GeoJSON button only
+      const btnGeo = document.createElement('button');
+      btnGeo.className = 'download-format-btn';
+      btnGeo.textContent = 'GeoJSON';
+      btnGeo.addEventListener('click', (ev) => { ev.stopPropagation(); downloadSingleLayer(k); });
+
+      const btnContainer = document.createElement('div');
+      btnContainer.style.display = 'flex';
+      btnContainer.style.gap = '6px';
+      btnContainer.appendChild(btnGeo);
+
+      row.appendChild(btnContainer);
+      downloadLayersList.appendChild(row);
+    }catch(e){
+      console.warn('Erro construir linha download para', k, e);
+    }
+  });
+}
+
+/* Convert/get a layer's GeoJSON (leaflet toGeoJSON or raw) */
+function getLayerGeoJsonForKey(k){
+  try{
+    if(layers[k] && typeof layers[k].toGeoJSON === 'function'){
+      return layers[k].toGeoJSON();
+    }
+    if(raw[k]) return raw[k];
+  }catch(e){ console.warn('Erro extrair geojson', e); }
+  return null;
+}
+
+/* Download single layer as GeoJSON */
+async function downloadSingleLayer(k){
+  const gj = getLayerGeoJsonForKey(k);
+  if(!gj){
+    alert('GeoJSON da camada não disponível: ' + k);
+    return;
+  }
+  const baseName = (foundFiles[k] ? foundFiles[k].replace(/\.[^/.]+$/,'') : k).replace(/\s+/g,'_');
+  const filename = `${baseName}_${new Date().toISOString().slice(0,19).replace(/[:T]/g,'-')}.geojson`;
+  try{
+    downloadObjectAsJson(gj, filename);
+    showExportStatus(`Download iniciado: ${filename}`, 3000);
+  }catch(e){
+    console.error('Erro downloadSingleLayer', e);
+    alert('Erro no download: ' + (e && e.message ? e.message : e));
+  }
+}
+
 /* ---------------- Inicialização principal ---------------- */
 async function start(){
   try{
@@ -1204,6 +1264,19 @@ async function start(){
   }
 }
 window.addEventListener('load', start);
+
+/* Global click handler to hide menus when clicking outside */
+document.addEventListener('click', (e)=>{
+  const targets = [exportMenu, uploadMenu, basemapMenu, downloadMenu];
+  if(!targets) return;
+  targets.forEach(m => { if(m && !m.contains(e.target)) m.style.display='none'; });
+});
+
+/* Informações em console sobre bibliotecas relevantes */
+window.addEventListener('load', ()=> {
+  console.info('tgeojson (togeojson) presente?', typeof toGeoJSON !== 'undefined');
+  console.info('shpjs (shp) presente?', typeof shp !== 'undefined');
+});
 </script>
 </body>
 </html>
