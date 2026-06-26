@@ -17,6 +17,129 @@
 <script src="https://unpkg.com/togeojson@0.16.0/togeojson.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<<<<<<< HEAD
+=======
+
+<style>
+  :root{
+    --bg:#04120a; --panel:#07160a; --muted:#82f59b; --muted-dim:rgba(130,245,155,0.25); --txt:#dfffe8; --card: rgba(10,20,12,0.7);
+  }
+  html,body{height:100%;margin:0;font-family:Inter,system-ui,Arial,Helvetica,sans-serif;background:var(--bg);color:var(--txt)}
+  #app{display:block;height:100vh;overflow:hidden}
+  #map{position:relative;height:100vh}
+  .card{background:var(--card);padding:10px;border-radius:8px;margin-bottom:12px;border:1px solid rgba(255,255,255,0.03)}
+  /* Top bar */
+  #topbar{
+    position:fixed; left:0; right:0; top:0; height:56px; z-index:1700;
+    background:linear-gradient(90deg, rgba(4,18,10,0.92), rgba(6,22,15,0.82));
+    display:flex; align-items:center; justify-content:space-between; padding:0 16px;
+    box-shadow:0 6px 18px rgba(0,0,0,0.5); border-bottom:1px solid rgba(255,255,255,0.02);
+  }
+  #topbar .title{font-weight:700;color:#dfffe8;display:flex;align-items:center;gap:12px;font-size:15px}
+  #topbar .title img.logo { width:100px;height:100px;border-radius:8px;object-fit:contain; background:rgba(255,255,255,0.02);padding:4px }
+  .top-actions{display:flex;align-items:center;gap:10px}
+  .action-btn{
+    width:44px;height:44px;border-radius:10px;display:flex;align-items:center;justify-content:center;
+    background:rgba(5,10,8,0.95); border:1px solid rgba(255,255,255,0.04); cursor:pointer;
+    box-shadow:0 8px 26px rgba(0,0,0,0.5);
+  }
+  .action-btn:focus{outline:2px solid rgba(34,197,94,0.18)}
+  .export-menu, .basemap-menu, .upload-menu, .download-menu{
+    position: absolute;
+    top:62px;
+    z-index:1750;
+    width:320px;
+    background: rgba(5,10,8,0.96);
+    border:1px solid rgba(255,255,255,0.04);
+    border-radius:8px;
+    padding:8px;
+    box-shadow:0 8px 30px rgba(0,0,0,0.6);
+  }
+  .export-menu{ right:176px; }
+  .download-menu{ right:244px; }
+  .upload-menu{ right:110px; }
+  .basemap-menu{ right:16px; }
+  .export-item, .basemap-item, .upload-item, .download-item{
+    padding:8px;border-radius:6px;cursor:pointer;color:var(--txt)
+  }
+  .export-item:hover, .basemap-item:hover, .upload-item:hover, .download-item:hover{background:rgba(255,255,255,0.02)}
+  .layer-panel{
+    position:fixed; top:72px; right:16px; z-index:1650;
+    width:320px; max-height:68vh; overflow:auto; border-radius:10px; padding:12px;
+    background:rgba(5,10,8,0.94); border:1px solid rgba(255,255,255,0.03); box-shadow:0 10px 30px rgba(0,0,0,0.6);
+    transition: transform .15s ease, opacity .15s;
+  }
+  .layer-panel.hidden{ opacity:0; transform:scale(.98) translateY(-6px); pointer-events:none }
+  .layer-item{display:flex;align-items:center;gap:10px;padding:8px;border-radius:6px;cursor:pointer}
+  .layer-item:hover{ background: rgba(255,255,255,0.015) }
+  .eye-btn{
+    width:26px;height:26px;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;
+    background:transparent;border:1px solid rgba(255,255,255,0.03);color:var(--muted-dim);flex:0 0 26px;
+  }
+  .eye-btn svg{ width:18px;height:18px; display:block; }
+  .eye-btn.visible{ background: linear-gradient(180deg, rgba(18,77,51,0.18), rgba(18,77,51,0.08)); border-color: rgba(130,245,155,0.14); color:var(--muted); box-shadow: 0 2px 8px rgba(12,30,18,0.45) inset; }
+  .layer-label{flex:1;color:var(--txt);font-size:14px}
+  .layer-label .small{font-size:13px;color:#bfe8c9}
+  .remove-btn{width:28px;height:28px;border-radius:6px;display:inline-flex;align-items:center;justify-content:center;background:transparent;border:none;color:#ff8b8b;cursor:pointer}
+  .remove-btn:hover{background:rgba(255,100,100,0.06)}
+  .select-btn{width:18px;height:18px;border-radius:4px;border:1px solid rgba(255,255,255,0.06);background:transparent;flex:0 0 18px;display:inline-flex;align-items:center;justify-content:center;color:var(--muted-dim);cursor:pointer}
+  .select-btn.selected{background:linear-gradient(180deg, rgba(18,77,51,0.18), rgba(18,77,51,0.08));border-color:rgba(130,245,155,0.14);color:var(--muted)}
+  .legend{
+    width:220px;background:rgba(5,10,8,0.95);border-radius:10px;padding:10px;border:1px solid rgba(255,255,255,0.03);
+    color:var(--txt); font-size:13px
+  }
+  .leg-item{display:flex;align-items:center;gap:8px;margin-bottom:6px}
+  .leg-dot{width:14px;height:14px;border-radius:3px;border:1px solid rgba(0,0,0,0.16)}
+  .hatch {
+    background-color: transparent;
+    background-image: repeating-linear-gradient(45deg, #000 0, #000 2px, transparent 2px, transparent 6px);
+    border:1px solid #000;
+  }
+  #loading{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;background:rgba(3,8,5,0.96);z-index:1800;color:#9fbfa1}
+  .spinner{width:44px;height:44px;border:3px solid rgba(34,197,94,0.09);border-top-color:var(--muted);border-radius:50%;animation:rot .85s linear infinite}
+  @keyframes rot{to{transform:rotate(360deg)}}
+  .loading-close{margin-top:12px;padding:8px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.04);background:transparent;color:var(--muted);cursor:pointer}
+  .load-log{margin-top:10px;color:#f7d6d6;max-width:760px;text-align:center;font-size:13px}
+  .small{font-size:13px;color:#9fbfa1}
+  .btn{padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.03);background:transparent;color:var(--muted);cursor:pointer}
+  .leaflet-container{background:linear-gradient(#04120a,#06210f)}
+  .leaflet-bottom .legend { margin-bottom: 14px; margin-right: 12px; z-index: 1400; }
+  #exportStatus{position:fixed; top:64px; right:16px; z-index:1760; color:#dfffe8; background:rgba(6,18,10,0.85); border-radius:6px;padding:6px 10px; display:none; font-size:13px}
+  input[type="file"]{ display:none; }
+
+  .search-bar {
+    position:fixed;
+    left:70px;
+    top:66px;
+    z-index:1745;
+    width:360px;
+    max-width:calc(100% - 96px);
+    display:flex;
+    align-items:center;
+    gap:6px;
+    background: #ffffffee;
+    border-radius:8px;
+    padding:4px;
+    box-shadow: 0 6px 20px rgba(3,6,3,0.6);
+    border:1px solid rgba(0,0,0,0.12);
+  }
+  .search-input { flex:1; height:38px; border-radius:8px; border:1px solid rgba(0,0,0,0.08); padding:8px 12px; font-size:13px; color:#0b2a1a; background: #fff; }
+  .search-btn, .search-clear { height:36px; display:inline-flex; align-items:center; justify-content:center; padding:6px; cursor:pointer; }
+  .search-btn { min-width:44px; background:#6b21a8; border-radius:8px; border:none; color:white; }
+  .search-clear { min-width:36px; background: transparent; border-radius:8px; border:1px solid rgba(0,0,0,0.06); color:#6b21a8; }
+  .search-results { position:fixed; left:16px; top:66px; margin-top:48px; z-index:1746; width:360px; max-width:calc(100% - 96px); background: rgba(255,255,255,0.98); border-radius:8px; box-shadow: 0 8px 30px rgba(0,0,0,0.35); overflow: auto; max-height:40vh; border:1px solid rgba(0,0,0,0.08); display:none; padding:6px; }
+  .search-result-item { padding:8px; border-radius:6px; cursor:pointer; font-size:13px; color:#08321f; }
+  .search-result-item:hover { background: rgba(0,0,0,0.04); }
+  .search-noresults { padding:8px; color:#666; font-size:13px }
+  @media (max-width:480px){ .search-bar, .search-results { left:8px; right:8px; width:auto; max-width:calc(100% - 16px); } }
+
+  .download-layer-row { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:6px; border-radius:6px; margin-bottom:6px; background: rgba(255,255,255,0.01); }
+  .download-layer-name { font-size:13px; color:var(--txt); flex:1; }
+  .download-format-btn { padding:6px 8px; font-size:13px; cursor:pointer; border-radius:6px; background:transparent; border:1px solid rgba(255,255,255,0.04); color:var(--txt); margin-left:6px; }
+  .download-format-btn:hover { background: rgba(255,255,255,0.02); }
+  .download-empty { font-size:13px; color:#9fbfa1; padding:6px; }
+</style>
+>>>>>>> dfa10da27f48e4cac2dd7bab3dadab6397e2804b
 </head>
 <body>
 
@@ -28,7 +151,12 @@
   <button class="loading-close" id="loadingClose">Fechar (mostrar mapa)</button>
 </div>
 
+<<<<<<< HEAD
 <div id="topbar" role="banner">
+=======
+<!-- Top Bar -->
+<div id="topbar" role="banner" aria-label="Barra superior">
+>>>>>>> dfa10da27f48e4cac2dd7bab3dadab6397e2804b
   <div class="title">
     <img src="logo_cartogeo.png" alt="Logo" class="logo" onerror="this.style.display='none'"/>
     <div class="title-text">
@@ -36,9 +164,26 @@
       <div class="subtitle">Ative as camadas de interesse no ícone de Camadas</div>
     </div>
   </div>
+<<<<<<< HEAD
   <div class="top-actions">
     <button id="downloadBtn" class="action-btn" title="Download de camadas">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+=======
+
+  <div class="top-actions" aria-hidden="false">
+    <button id="downloadBtn" class="action-btn" title="Download de camadas" aria-haspopup="true" aria-expanded="false" style="background:transparent;border:none">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9fe3b6" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+        <polyline points="7 10 12 15 17 10"></polyline>
+        <line x1="12" y1="15" x2="12" y2="3"></line>
+      </svg>
+    </button>
+
+    <button id="printBtn" class="action-btn" title="Exportar / Imprimir" aria-haspopup="true" aria-expanded="false" style="background:transparent;border:none">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#9fe3b6" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M6 9V2h12v7"></path><path d="M6 18H4a2 2 0 0 1-2-2v-3h20v3a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8" rx="2"></rect>
+      </svg>
+>>>>>>> dfa10da27f48e4cac2dd7bab3dadab6397e2804b
     </button>
     <button id="printBtn" class="action-btn" title="Exportar / Imprimir">
       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-3h20v3a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8" rx="2"/></svg>
@@ -58,10 +203,21 @@
   </div>
 </div>
 
+<<<<<<< HEAD
 <div class="search-bar" role="search">
   <input id="locSearchInput" class="search-input" type="search" placeholder="Encontrar endereço ou lugar"/>
   <button id="locSearchBtn" class="search-btn" title="Pesquisar">
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="6"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+=======
+<!-- SEARCH BAR -->
+<div class="search-bar" role="search" aria-label="Pesquisar local">
+  <input id="locSearchInput" class="search-input" type="search" placeholder="Encontrar endereço ou lugar" aria-label="Encontrar endereço ou lugar" />
+  <button id="locSearchBtn" class="search-btn" title="Pesquisar" aria-label="Pesquisar">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <circle cx="11" cy="11" r="6"></circle>
+      <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+    </svg>
+>>>>>>> dfa10da27f48e4cac2dd7bab3dadab6397e2804b
   </button>
   <button id="locClearBtn" class="search-clear" title="Limpar" type="button">✕</button>
 </div>
@@ -75,6 +231,7 @@
   <div class="menu-info">A exportação captura o mapa e as legendas visíveis.</div>
 </div>
 
+<<<<<<< HEAD
 <div id="downloadMenu" class="download-menu" style="display:none" role="menu">
   <div class="menu-header">Baixar camadas</div>
   <div id="downloadLayersList"></div>
@@ -90,6 +247,37 @@
   <div class="menu-header">Camadas adicionadas</div>
   <div id="uploadedList"></div>
   <div id="noUploaded" class="small" style="margin-top:10px">Nenhuma camada adicionada.</div>
+=======
+<div id="searchResults" class="search-results" role="listbox" aria-label="Resultados da pesquisa"></div>
+
+<!-- Menus -->
+<div id="exportMenu" class="export-menu" style="display:none" role="menu" aria-hidden="true">
+  <div style="font-weight:700;color:#bdecc0;margin-bottom:6px">Exportar mapa</div>
+  <div class="export-item" id="exportPDFBtn">Exportar como PDF (A4)</div>
+  <div class="export-item" id="exportPDFLandscapeBtn">Exportar como PDF (A4 Paisagem)</div>
+  <div style="font-size:12px;color:#9fbfa1;margin-top:6px">A exportação captura o mapa e as legendas visíveis. Tiles sem CORS podem não aparecer.</div>
+</div>
+
+<!-- Download menu simplificado: apenas GeoJSON por camada visível -->
+<div id="downloadMenu" class="download-menu" style="display:none" role="menu" aria-hidden="true">
+  <div style="font-weight:700;color:#bdecc0;margin-bottom:6px">Baixar camadas</div>
+  <div id="downloadLayersList" style="max-height:320px;overflow:auto;"></div>
+  <div style="font-size:12px;color:#9fbfa1;margin-top:6px">A lista exibe apenas as camadas atualmente visíveis no mapa. Clique em "GeoJSON" para baixar a camada.</div>
+</div>
+
+<div id="uploadMenu" class="upload-menu" style="display:none" role="menu" aria-hidden="true">
+  <div style="font-weight:700;color:#bdecc0;margin-bottom:6px">Adicionar dados</div>
+  <div class="upload-item" id="uploadKmlBtn">Carregar KML</div>
+  <div class="upload-item" id="uploadZipBtn">Carregar Shapefile (.zip)</div>
+
+  <div style="font-size:12px;color:#9fbfa1;margin-top:8px">Aceita .kml, .kmz (zip com .kml) ou .zip com shapefile (.shp/.dbf/.prj).</div>
+
+  <hr style="border:none;border-top:1px solid rgba(255,255,255,0.03);margin:8px 0">
+
+  <div style="font-weight:700;color:#bdecc0;margin-bottom:6px">Camadas adicionadas</div>
+  <div id="uploadedList" style="max-height:220px;overflow:auto;"></div>
+  <div id="noUploaded" class="small" style="margin-top:6px;color:#9fbfa1">Nenhuma camada adicionada.</div>
+>>>>>>> dfa10da27f48e4cac2dd7bab3dadab6397e2804b
 </div>
 
 <div id="basemapMenu" class="basemap-menu" style="display:none" role="menu">
@@ -98,6 +286,7 @@
   <div class="menu-item" id="bmSatellite"><i>🛰️</i> Satélite (Esri)</div>
 </div>
 
+<<<<<<< HEAD
 <!-- Painel de medição -->
 <div id="measurePanel" class="measure-panel hidden" role="region">
   <div class="panel-header">
@@ -150,6 +339,12 @@
 </div>
 
 <input type="file" id="fileInput" accept=".kml,.kmz,.zip" style="display:none"/>
+=======
+<!-- hidden file input -->
+<input type="file" id="fileInput" accept=".kml,.kmz,.zip" />
+
+<!-- export status -->
+>>>>>>> dfa10da27f48e4cac2dd7bab3dadab6397e2804b
 <div id="exportStatus"></div>
 
 <div id="app" style="margin-top:60px">
@@ -762,6 +957,7 @@ function makeLeafletLayer(key) {
   return gj;
 }
 
+<<<<<<< HEAD
 /* ================================================================
    REPROJEÇÃO
 ================================================================ */
@@ -784,17 +980,153 @@ function reprojectIfNeeded(data, key) {
       });
       delete copy.crs;
       return copy;
+=======
+/* color generator simples para camadas do usuário */
+function generateColorForKey(key){
+  let h = 0;
+  for(let i=0;i<key.length;i++) h = (h<<5) - h + key.charCodeAt(i);
+  h = Math.abs(h) % 360;
+  return `hsl(${h} 80% 50%)`;
+}
+
+/* build and show */
+function buildAndShow(){
+  if(!map) initMap();
+
+  Object.keys(LAYER_CANDIDATES).forEach(k=>{
+    if(layers[k] && map.hasLayer(layers[k])) try{ map.removeLayer(layers[k]); }catch(e){}
+    layers[k] = null;
+    if(raw[k]) {
+      raw[k] = reprojectIfNeeded(raw[k], k);
+      makeLeafletLayer(k);
+>>>>>>> dfa10da27f48e4cac2dd7bab3dadab6397e2804b
     }
   } catch(e) {}
   return data;
 }
 
+<<<<<<< HEAD
 /* ================================================================
    LEGENDA
 ================================================================ */
 function updateLegend() {
   const container = byId('leg-items');
   if (!container) return;
+=======
+/* toggle show/hide layer */
+function toggleLayer(key){
+  const checked = isChecked(key);
+  if(!layers[key] && raw[key]){
+    makeLeafletLayer(key);
+  }
+  if(!checked){
+    if(layers[key]) layers[key].addTo(map);
+    setChecked(key,true);
+    if(key === 'limite' && layers['limite']) layers['limite'].eachLayer(l=>{ if(l.bringToFront) l.bringToFront(); });
+  } else {
+    if(layers[key] && map.hasLayer(layers[key])) map.removeLayer(layers[key]);
+    setChecked(key,false);
+  }
+  updateLegend();
+}
+
+/* visual state helpers */
+function setChecked(key, val){
+  const id = key + '-eye';
+  const el = byId(id);
+  if(el){
+    if(val) el.classList.add('visible'); else el.classList.remove('visible');
+    renderEyeIcon(el, val);
+  }
+}
+function isChecked(key){
+  const el = byId(key + '-eye');
+  return el && el.classList.contains('visible');
+}
+function renderEyeIcon(btnEl, visible){
+  if(!btnEl) return;
+  btnEl.innerHTML = '';
+  if(visible){
+    btnEl.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="#9fe3b6" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"></path><circle cx="12" cy="12" r="3"></circle></svg>`;
+  } else {
+    btnEl.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="#6b7a6e" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17.94 17.94A10.94 10.94 0 0 1 12 19c-7 0-11-7-11-7a20.3 20.3 0 0 1 5.06-5.06"></path><path d="M1 1l22 22"></path><path d="M9.88 9.88a3 3 0 0 0 4.24 4.24"></path></svg>`;
+  }
+}
+
+/* add panel item if missing */
+function addPanelItemIfMissing(key){
+  if(byId(key + '-eye')) return;
+  const container = document.querySelector('#layerPanel #otherLayers');
+  if(!container) return;
+  const wrapper = document.createElement('div');
+  wrapper.className = 'layer-item';
+  wrapper.setAttribute('data-key', key);
+  wrapper.id = key + '-item';
+  wrapper.onclick = () => toggleLayer(key);
+
+  const selectBtn = document.createElement('button');
+  selectBtn.className = 'select-btn';
+  selectBtn.id = key + '-select';
+  selectBtn.title = 'Selecionar camada (não utilizado no novo menu de download)';
+  selectBtn.addEventListener('click', (ev)=>{ ev.stopPropagation(); toggleSelect(key); });
+
+  const btn = document.createElement('button');
+  btn.className = 'eye-btn';
+  btn.id = key + '-eye';
+  btn.addEventListener('click', (ev)=>{ ev.stopPropagation(); toggleLayer(key); });
+
+  const lbl = document.createElement('div');
+  lbl.className = 'layer-label';
+  const display = DISPLAY_NAMES[key] ? DISPLAY_NAMES[key] : (foundFiles[key] ? foundFiles[key].replace('.geojson','') : key.replace(/_/g,' '));
+  lbl.innerHTML = `<div class="small">${display}</div>`;
+
+  const isBuiltIn = Object.prototype.hasOwnProperty.call(LAYER_CANDIDATES, key);
+  let removeBtn = null;
+  if(!isBuiltIn){
+    removeBtn = document.createElement('button');
+    removeBtn.className = 'remove-btn';
+    removeBtn.title = 'Remover camada';
+    removeBtn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ff8b8b" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path></svg>`;
+    removeBtn.addEventListener('click', (ev)=>{ ev.stopPropagation(); ev.preventDefault(); confirmAndRemoveLayer(key); });
+  }
+
+  wrapper.appendChild(selectBtn);
+  wrapper.appendChild(btn);
+  wrapper.appendChild(lbl);
+  if(removeBtn) wrapper.appendChild(removeBtn);
+  container.appendChild(wrapper);
+  renderEyeIcon(btn, false);
+}
+
+/* remove panel item (UI) */
+function removePanelItem(key){
+  const el = byId(key + '-item');
+  if(el && el.parentNode) el.parentNode.removeChild(el);
+}
+
+/* toggle select (for download) */
+function toggleSelect(key){
+  const el = byId(key + '-select');
+  if(!el) return;
+  el.classList.toggle('selected');
+}
+function isSelected(key){
+  const el = byId(key + '-select');
+  return el && el.classList.contains('selected');
+}
+
+/* Legend management (only visible layers) */
+function updateLegend(){
+  let container = document.getElementById('leg-items');
+  if(!container && legendControl && legendControl.getContainer){
+    const cont = legendControl.getContainer();
+    if(cont){
+      cont.innerHTML = '<div style="font-weight:700;margin-bottom:8px;color:#bdecc0">Legenda</div><div id="leg-items"></div>';
+    }
+    container = document.getElementById('leg-items');
+  }
+  if(!container) return;
+>>>>>>> dfa10da27f48e4cac2dd7bab3dadab6397e2804b
   container.innerHTML = '';
 
   const visibleKeys = Object.keys(layers).filter(k => layers[k] && map && map.hasLayer(layers[k]));
@@ -843,6 +1175,7 @@ function updateLegend() {
   });
 }
 
+<<<<<<< HEAD
 /* ================================================================
    MAPA
 ================================================================ */
@@ -855,11 +1188,32 @@ function repositionZoomControl() {
   zb.style.cssText = `position:fixed;z-index:1746;transition:top .12s,left .12s;
     top:${Math.max(8, Math.round(sbRect.top + (sbRect.height - zbRect.height)/2))}px;
     left:${Math.max(8, Math.round(sbRect.left - zbRect.width - 20))}px;pointer-events:auto`;
+=======
+/* ---------------- MAP INIT & BASEMAP ---------------- */
+function repositionZoomControl(){
+  const zb = document.querySelector('.leaflet-control-zoom');
+  const sb = document.querySelector('.search-bar');
+  if(!zb || !sb) return;
+  zb.style.position = 'fixed';
+  zb.style.zIndex = 1746;
+  zb.style.transition = 'top .12s ease, left .12s ease';
+  const sbRect = sb.getBoundingClientRect();
+  const zbRect = zb.getBoundingClientRect();
+  const GAP = 20;
+  const top = Math.round(sbRect.top + (sbRect.height - zbRect.height)/2);
+  const left = Math.round(sbRect.left - zbRect.width - GAP);
+  const finalTop = (top < 8) ? 8 : top;
+  const finalLeft = (left < 8) ? 8 : left;
+  zb.style.top = finalTop + 'px';
+  zb.style.left = finalLeft + 'px';
+  zb.style.pointerEvents = 'auto';
+>>>>>>> dfa10da27f48e4cac2dd7bab3dadab6397e2804b
   const tl = document.querySelector('.leaflet-top.leaflet-left');
   if (tl) tl.style.width = '0';
 }
 const reposLater = (d=80) => setTimeout(repositionZoomControl, d);
 
+<<<<<<< HEAD
 function initMap() {
   map = L.map('map', { zoomControl:false });
   osmLayer       = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom:19, attribution:'© OpenStreetMap' });
@@ -871,6 +1225,21 @@ function initMap() {
   legendControl = L.control({ position:'bottomright' });
   legendControl.onAdd = function() {
     const div = L.DomUtil.create('div','legend');
+=======
+function repositionZoomControlLater(delay=80){ setTimeout(repositionZoomControl, delay); }
+
+function initMap(){
+  map = L.map('map',{zoomControl:false});
+  osmLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19, attribution:'© OpenStreetMap'});
+  satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 19, attribution: 'Tiles © Esri' });
+  osmLayer.addTo(map);
+  base = osmLayer;
+  map.setView([-8, -42], 6);
+  L.control.zoom({ position: 'topleft' }).addTo(map);
+  legendControl = L.control({position: 'bottomright'});
+  legendControl.onAdd = function () {
+    const div = L.DomUtil.create('div', 'legend');
+>>>>>>> dfa10da27f48e4cac2dd7bab3dadab6397e2804b
     div.id = 'legendBox';
     div.innerHTML = `
       <svg width="0" height="0" style="position:absolute">
@@ -888,9 +1257,22 @@ function initMap() {
     return div;
   };
   legendControl.addTo(map);
+<<<<<<< HEAD
 
   reposLater(120);
   window.addEventListener('resize', () => reposLater(40));
+=======
+  repositionZoomControlLater(120);
+  window.addEventListener('resize', ()=> repositionZoomControlLater(40));
+  window.addEventListener('scroll', ()=> repositionZoomControlLater(40));
+  const sb = document.querySelector('.search-bar');
+  if(sb){
+    try{
+      const observer = new ResizeObserver(()=> repositionZoomControlLater(20));
+      observer.observe(sb);
+    }catch(e){}
+  }
+>>>>>>> dfa10da27f48e4cac2dd7bab3dadab6397e2804b
 }
 
 function switchBasemap(which) {
@@ -937,6 +1319,7 @@ async function findAndLoadAll() {
   }
 }
 
+<<<<<<< HEAD
 /* ================================================================
    BUILD AND SHOW
 ================================================================ */
@@ -951,6 +1334,190 @@ function buildAndShow() {
     if (raw[k]) {
       raw[k] = reprojectIfNeeded(raw[k], k);
       makeLeafletLayer(k);
+=======
+/* ---------------- UI: Menus, Export, Upload ---------------- */
+(function setupLayerPanel(){
+  if(!document.getElementById('layerPanel')){
+    const panel = document.createElement('div');
+    panel.className = 'layer-panel hidden';
+    panel.id = 'layerPanel';
+    panel.setAttribute('role','region');
+    panel.setAttribute('aria-label','Painel de camadas');
+    panel.innerHTML = `
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+        <div style="font-weight:700;color:#bdecc0">Camadas</div>
+        <button id="closePanel" title="Fechar painel" style="background:transparent;border:none;color:#bdecc0;cursor:pointer">✕</button>
+      </div>
+      <div id="layerList" style="display:flex;flex-direction:column;gap:4px">
+        <div class="layer-item" data-key="rl" onclick="toggleLayer('rl')">
+          <button class="select-btn" id="rl-select" onclick="event.stopPropagation(); toggleSelect('rl')"></button>
+          <button class="eye-btn" id="rl-eye" onclick="event.stopPropagation(); toggleLayer('rl')"></button>
+          <div class="layer-label"><div class="small">${DISPLAY_NAMES['rl']}</div></div>
+        </div>
+        <div class="layer-item" data-key="atividade" onclick="toggleLayer('atividade')">
+          <button class="select-btn" id="atividade-select" onclick="event.stopPropagation(); toggleSelect('atividade')"></button>
+          <button class="eye-btn" id="atividade-eye" onclick="event.stopPropagation(); toggleLayer('atividade')"></button>
+          <div class="layer-label"><div class="small">${DISPLAY_NAMES['atividade']}</div></div>
+        </div>
+        <div class="layer-item" data-key="app" onclick="toggleLayer('app')">
+          <button class="select-btn" id="app-select" onclick="event.stopPropagation(); toggleSelect('app')"></button>
+          <button class="eye-btn" id="app-eye" onclick="event.stopPropagation(); toggleLayer('app')"></button>
+          <div class="layer-label"><div class="small">${DISPLAY_NAMES['app']}</div></div>
+        </div>
+        <div class="layer-item" data-key="limite" onclick="toggleLayer('limite')">
+          <button class="select-btn" id="limite-select" onclick="event.stopPropagation(); toggleSelect('limite')"></button>
+          <button class="eye-btn" id="limite-eye" onclick="event.stopPropagation(); toggleLayer('limite')"></button>
+          <div class="layer-label"><div class="small">${DISPLAY_NAMES['limite']}</div></div>
+        </div>
+        <hr style="border:none;border-top:1px solid rgba(255,255,255,0.03);margin:8px 0">
+        <div id="otherLayers"></div>
+      </div>
+    `;
+    document.body.appendChild(panel);
+    document.getElementById('closePanel').addEventListener('click', ()=>{ panel.classList.add('hidden'); });
+  }
+})();
+const layerToggleBtn = byId('layerToggle'), layerPanel = byId('layerPanel');
+layerToggleBtn.addEventListener('click', ()=>{ layerPanel.classList.toggle('hidden'); layerToggleBtn.setAttribute('aria-expanded', !layerPanel.classList.contains('hidden')); repositionZoomControlLater(20); });
+layerToggleBtn.addEventListener('keydown', e=>{ if(e.key==='Enter' || e.key===' ') layerToggleBtn.click(); });
+document.addEventListener('click', (ev)=>{ if(layerPanel.classList.contains('hidden')) return; if(layerPanel.contains(ev.target) || layerToggleBtn.contains(ev.target)) return; layerPanel.classList.add('hidden'); });
+
+/* Export menu */
+const printBtn = byId('printBtn'), exportMenu = byId('exportMenu');
+const exportPDFBtn = byId('exportPDFBtn'), exportPDFLandscapeBtn = byId('exportPDFLandscapeBtn');
+const exportStatus = byId('exportStatus');
+
+printBtn.addEventListener('click', (e)=>{ e.stopPropagation(); const visible = exportMenu.style.display !== 'none'; exportMenu.style.display = visible ? 'none' : 'block'; printBtn.setAttribute('aria-expanded', String(!visible)); });
+exportMenu.addEventListener('click', (e)=> e.stopPropagation());
+
+function showExportStatus(msg, timeout=4000){
+  exportStatus.style.display = 'block';
+  exportStatus.textContent = msg;
+  if(timeout>0) setTimeout(()=>{ exportStatus.style.display = 'none'; }, timeout);
+}
+
+/* Export to PDF */
+async function exportMapToPDF(orientation='portrait'){
+  try{
+    showExportStatus('Gerando imagem do mapa — aguarde...');
+    const oldPanelVisible = !layerPanel.classList.contains('hidden');
+    const oldExportVisible = exportMenu.style.display !== 'none';
+    const oldUploadVisible = uploadMenu.style.display !== 'none';
+    const oldBasemapVisible = basemapMenu.style.display !== 'none';
+    const oldDownloadVisible = downloadMenu.style.display !== 'none';
+    layerPanel.classList.add('hidden'); exportMenu.style.display = 'none'; uploadMenu.style.display='none'; basemapMenu.style.display='none'; downloadMenu.style.display='none';
+
+    await sleep(200);
+
+    const mapEl = document.getElementById('map');
+    const scale = 2;
+    const opts = { useCORS: true, allowTaint: false, logging: false, scale: scale, backgroundColor: null };
+    const canvas = await html2canvas(mapEl, opts);
+
+    if(oldPanelVisible) layerPanel.classList.remove('hidden');
+    if(oldExportVisible) exportMenu.style.display = 'block';
+    if(oldUploadVisible) uploadMenu.style.display = 'block';
+    if(oldBasemapVisible) basemapMenu.style.display = 'block';
+    if(oldDownloadVisible) downloadMenu.style.display = 'block';
+
+    showExportStatus('Convertendo para PDF...');
+    const imgData = canvas.toDataURL('image/jpeg', 0.95);
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF({ orientation: orientation, unit: 'mm', format: 'a4' });
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const pdfHeight = pdf.internal.pageSize.getHeight();
+    const imgW = canvas.width, imgH = canvas.height;
+    let w = pdfWidth, h = (imgH * pdfWidth) / imgW, x = 0, y = (pdfHeight - h) / 2;
+    if(h > pdfHeight){ h = pdfHeight; w = (imgW * pdfHeight) / imgH; x = (pdfWidth - w) / 2; y = 0; }
+    pdf.addImage(imgData, 'JPEG', x, y, w, h, undefined, 'FAST');
+    const filename = `mapa_${new Date().toISOString().slice(0,19).replace(/[:T]/g,'-')}.pdf`;
+    pdf.save(filename);
+    showExportStatus('PDF gerado: ' + filename, 4000);
+  }catch(err){
+    console.error('Erro exportar PDF:', err);
+    showExportStatus('Erro ao gerar PDF — veja console para detalhes', 7000);
+    alert('Erro ao gerar PDF. Verifique o console (F12). Mensagem: ' + (err && err.message ? err.message : err));
+  }
+}
+function sleep(ms){ return new Promise(res=>setTimeout(res, ms)); }
+exportPDFBtn.addEventListener('click', ()=>{ exportMenu.style.display='none'; exportMapToPDF('portrait'); });
+exportPDFLandscapeBtn.addEventListener('click', ()=>{ exportMenu.style.display='none'; exportMapToPDF('landscape'); });
+
+/* Basemap menu */
+const basemapBtn = byId('basemapBtn'), basemapMenu = byId('basemapMenu');
+const bmMap = byId('bmMap'), bmSatellite = byId('bmSatellite');
+basemapBtn.addEventListener('click', (e)=>{ e.stopPropagation(); const visible = basemapMenu.style.display !== 'none'; basemapMenu.style.display = visible ? 'none' : 'block'; basemapBtn.setAttribute('aria-expanded', String(!visible)); });
+basemapMenu.addEventListener('click', (e)=> e.stopPropagation());
+bmMap.addEventListener('click', ()=>{ basemapMenu.style.display='none'; switchBasemap('osm'); });
+bmSatellite.addEventListener('click', ()=>{ basemapMenu.style.display='none'; switchBasemap('satellite'); });
+
+/* Download menu (only GeoJSON now) */
+const downloadBtn = byId('downloadBtn'), downloadMenu = byId('downloadMenu');
+const downloadLayersList = byId('downloadLayersList');
+
+downloadBtn.addEventListener('click', (e)=>{ 
+  e.stopPropagation(); 
+  const visible = downloadMenu.style.display !== 'none'; 
+  downloadMenu.style.display = visible ? 'none' : 'block'; 
+  downloadBtn.setAttribute('aria-expanded', String(!visible)); 
+  if(!visible) {
+    buildDownloadList(); // populate when opening
+  }
+});
+downloadMenu.addEventListener('click', (e)=> e.stopPropagation());
+
+/* Upload menu */
+const uploadBtn = byId('uploadBtn'), uploadMenu = byId('uploadMenu'), fileInput = byId('fileInput');
+const uploadKmlBtn = byId('uploadKmlBtn'), uploadZipBtn = byId('uploadZipBtn');
+
+uploadBtn.addEventListener('click', (e)=>{ e.stopPropagation(); const visible = uploadMenu.style.display !== 'none'; uploadMenu.style.display = visible ? 'none' : 'block'; uploadBtn.setAttribute('aria-expanded', String(!visible)); });
+uploadMenu.addEventListener('click', (e)=> e.stopPropagation());
+
+uploadKmlBtn.addEventListener('click', ()=>{ uploadMenu.style.display='none'; fileInput.accept = '.kml,.kmz,.zip'; fileInput.click(); });
+uploadZipBtn.addEventListener('click', ()=>{ uploadMenu.style.display='none'; fileInput.accept = '.zip'; fileInput.click(); });
+
+fileInput.addEventListener('change', handleFileUpload);
+
+async function handleFileUpload(e){
+  const f = e.target.files && e.target.files[0];
+  if(!f) return;
+  const name = f.name || ('uploaded_' + Date.now());
+  showExportStatus('Processando ' + name + ' ...', 6000);
+  try{
+    const lc = name.toLowerCase();
+    if(lc.endsWith('.kml')){
+      const txt = await f.text();
+      const xml = (new DOMParser()).parseFromString(txt, 'text/xml');
+      const geojson = toGeoJSON.kml(xml);
+      await addUserLayer(name, geojson);
+      showExportStatus('KML carregado: ' + name, 3000);
+    } else if(lc.endsWith('.kmz') || lc.endsWith('.zip')){
+      const zip = await JSZip.loadAsync(f);
+      const kmlFile = Object.keys(zip.files).find(p => p.toLowerCase().endsWith('.kml'));
+      if(kmlFile){
+        const kmlTxt = await zip.file(kmlFile).async('string');
+        const xml = (new DOMParser()).parseFromString(kmlTxt, 'text/xml');
+        const geojson = toGeoJSON.kml(xml);
+        await addUserLayer(name, geojson);
+        showExportStatus('KMZ/KML dentro do zip carregado: ' + name, 3000);
+      } else {
+        const arr = await f.arrayBuffer();
+        const geo = await shp(arr);
+        let geojson = null;
+        if(geo && geo.type === 'FeatureCollection') geojson = geo;
+        else {
+          const features = [];
+          Object.keys(geo).forEach(k => {
+            if(geo[k] && geo[k].features) features.push(...geo[k].features);
+          });
+          geojson = { type: 'FeatureCollection', features };
+        }
+        await addUserLayer(name, geojson);
+        showExportStatus('Shapefile carregado: ' + name, 3000);
+      }
+    } else {
+      alert('Formato não suportado. Use .kml, .kmz ou .zip (shapefile).');
+>>>>>>> dfa10da27f48e4cac2dd7bab3dadab6397e2804b
     }
   });
 
@@ -1040,6 +1607,7 @@ function toggleMeasureMode() {
     if (btn)   { btn.classList.remove('active'); btn.setAttribute('aria-pressed','false'); }
     if (panel) panel.classList.add('hidden');
   }
+<<<<<<< HEAD
 }
 
 /* ================================================================
@@ -1051,6 +1619,50 @@ function closeAllPanelsExcept(exceptionId) {
   });
   ['exportMenu','uploadMenu','basemapMenu','downloadMenu'].forEach(id => {
     if (id !== exceptionId) { const p = byId(id); if (p) p.style.display = 'none'; }
+=======
+  userKeys.forEach(k => {
+    const name = foundFiles[k] || k;
+    const row = document.createElement('div');
+    row.id = 'uploaded-' + k;
+    row.style.display = 'flex';
+    row.style.alignItems = 'center';
+    row.style.justifyContent = 'space-between';
+    row.style.padding = '6px';
+    row.style.borderRadius = '6px';
+    row.style.marginBottom = '6px';
+    row.style.background = 'rgba(255,255,255,0.01)';
+    const left = document.createElement('div');
+    left.style.display = 'flex';
+    left.style.alignItems = 'center';
+    left.style.gap = '8px';
+    const select = document.createElement('button');
+    select.className = 'select-btn';
+    select.id = k + '-select';
+    select.addEventListener('click', (ev)=>{ ev.stopPropagation(); toggleSelect(k); });
+    const eye = document.createElement('button');
+    eye.className = 'eye-btn';
+    eye.id = k + '-eye-upload';
+    const visible = layers[k] && map && map.hasLayer(layers[k]);
+    renderEyeIcon(eye, visible);
+    eye.addEventListener('click', (ev) => { ev.stopPropagation(); toggleLayer(k); });
+    const label = document.createElement('div');
+    label.style.fontSize = '13px';
+    label.style.color = 'var(--txt)';
+    label.textContent = name;
+    left.appendChild(select);
+    left.appendChild(eye);
+    left.appendChild(label);
+    const right = document.createElement('div');
+    const btn = document.createElement('button');
+    btn.className = 'remove-btn';
+    btn.title = 'Remover camada';
+    btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ff8b8b" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path><path d="M10 11v6"></path><path d="M14 11v6"></path><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path></svg>`;
+    btn.addEventListener('click', (ev)=>{ ev.stopPropagation(); confirmAndRemoveLayer(k); });
+    right.appendChild(btn);
+    row.appendChild(left);
+    row.appendChild(right);
+    container.appendChild(row);
+>>>>>>> dfa10da27f48e4cac2dd7bab3dadab6397e2804b
   });
 }
 
@@ -1067,6 +1679,7 @@ function confirmAndRemoveLayer(key) {
   updateLegend();
 }
 
+<<<<<<< HEAD
 /* ================================================================
    UPLOAD DE CAMADAS
 ================================================================ */
@@ -1077,6 +1690,15 @@ function addUserLayer(geojson, originalName) {
   foundFiles[key]   = originalName || key;
   layerOpacity[key] = 0.4;
   layerVisible[key] = true;
+=======
+/* ---------------- Search (leve e não-intrusiva) ---------------- */
+(function setupSearch(){
+  const input = byId('locSearchInput');
+  const btn = byId('locSearchBtn');
+  const clearBtn = byId('locClearBtn');
+  const resultsBox = byId('searchResults');
+  let searchMarker = null;
+>>>>>>> dfa10da27f48e4cac2dd7bab3dadab6397e2804b
 
   const color = generateColorForKey(key);
   const gj = L.geoJSON(geojson, {
@@ -1095,6 +1717,7 @@ function addUserLayer(geojson, originalName) {
   showExportStatus('Camada adicionada: ' + (originalName || key), 3000);
 }
 
+<<<<<<< HEAD
 function removeUserLayer(key) {
   if (layers[key] && map.hasLayer(layers[key])) map.removeLayer(layers[key]);
   delete layers[key]; delete raw[key]; delete foundFiles[key];
@@ -1236,6 +1859,101 @@ function showExportStatus(msg, timeout=3000) {
 async function start() {
   try {
     logStatus('Buscando arquivos...');
+=======
+/* ---------------- Download helpers (APENAS GEOJSON) ---------------- */
+function downloadBlob(blob, filename) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(()=>{ document.body.removeChild(a); URL.revokeObjectURL(url); }, 500);
+}
+function downloadObjectAsJson(obj, filename){
+  const str = JSON.stringify(obj, null, 2);
+  const blob = new Blob([str], {type: 'application/vnd.geo+json;charset=utf-8'});
+  downloadBlob(blob, filename);
+}
+
+/* Get visible layer keys (layers currently shown on map) */
+function getVisibleLayerKeys(){ return Object.keys(layers).filter(k => layers[k] && map && map.hasLayer(layers[k])); }
+
+/* Build download list inside menu: one row per visible layer with GeoJSON button */
+function buildDownloadList(){
+  downloadLayersList.innerHTML = '';
+  const keys = getVisibleLayerKeys();
+  if(keys.length === 0){
+    const empty = document.createElement('div');
+    empty.className = 'download-empty';
+    empty.textContent = 'Nenhuma camada visível para download.';
+    downloadLayersList.appendChild(empty);
+    return;
+  }
+
+  keys.forEach(k => {
+    try{
+      const row = document.createElement('div');
+      row.className = 'download-layer-row';
+      const nameDiv = document.createElement('div');
+      nameDiv.className = 'download-layer-name';
+      const display = DISPLAY_NAMES[k] ? DISPLAY_NAMES[k] : (foundFiles[k] ? foundFiles[k].replace(/\.[^/.]+$/,'') : k);
+      nameDiv.textContent = display;
+      row.appendChild(nameDiv);
+
+      // GeoJSON button only
+      const btnGeo = document.createElement('button');
+      btnGeo.className = 'download-format-btn';
+      btnGeo.textContent = 'GeoJSON';
+      btnGeo.addEventListener('click', (ev) => { ev.stopPropagation(); downloadSingleLayer(k); });
+
+      const btnContainer = document.createElement('div');
+      btnContainer.style.display = 'flex';
+      btnContainer.style.gap = '6px';
+      btnContainer.appendChild(btnGeo);
+
+      row.appendChild(btnContainer);
+      downloadLayersList.appendChild(row);
+    }catch(e){
+      console.warn('Erro construir linha download para', k, e);
+    }
+  });
+}
+
+/* Convert/get a layer's GeoJSON (leaflet toGeoJSON or raw) */
+function getLayerGeoJsonForKey(k){
+  try{
+    if(layers[k] && typeof layers[k].toGeoJSON === 'function'){
+      return layers[k].toGeoJSON();
+    }
+    if(raw[k]) return raw[k];
+  }catch(e){ console.warn('Erro extrair geojson', e); }
+  return null;
+}
+
+/* Download single layer as GeoJSON */
+async function downloadSingleLayer(k){
+  const gj = getLayerGeoJsonForKey(k);
+  if(!gj){
+    alert('GeoJSON da camada não disponível: ' + k);
+    return;
+  }
+  const baseName = (foundFiles[k] ? foundFiles[k].replace(/\.[^/.]+$/,'') : k).replace(/\s+/g,'_');
+  const filename = `${baseName}_${new Date().toISOString().slice(0,19).replace(/[:T]/g,'-')}.geojson`;
+  try{
+    downloadObjectAsJson(gj, filename);
+    showExportStatus(`Download iniciado: ${filename}`, 3000);
+  }catch(e){
+    console.error('Erro downloadSingleLayer', e);
+    alert('Erro no download: ' + (e && e.message ? e.message : e));
+  }
+}
+
+/* ---------------- Inicialização principal ---------------- */
+async function start(){
+  try{
+    logStatus('Iniciando busca de arquivos...');
+>>>>>>> dfa10da27f48e4cac2dd7bab3dadab6397e2804b
     await findAndLoadAll();
     logStatus('Construindo mapa...');
     initMap();
@@ -1341,7 +2059,23 @@ async function start() {
 }
 
 window.addEventListener('load', start);
+<<<<<<< HEAD
 window._updateLegend = updateLegend;
+=======
+
+/* Global click handler to hide menus when clicking outside */
+document.addEventListener('click', (e)=>{
+  const targets = [exportMenu, uploadMenu, basemapMenu, downloadMenu];
+  if(!targets) return;
+  targets.forEach(m => { if(m && !m.contains(e.target)) m.style.display='none'; });
+});
+
+/* Informações em console sobre bibliotecas relevantes */
+window.addEventListener('load', ()=> {
+  console.info('tgeojson (togeojson) presente?', typeof toGeoJSON !== 'undefined');
+  console.info('shpjs (shp) presente?', typeof shp !== 'undefined');
+});
+>>>>>>> dfa10da27f48e4cac2dd7bab3dadab6397e2804b
 </script>
 </body>
 </html>
